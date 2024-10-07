@@ -1,5 +1,11 @@
 # login
-config.py
+.env
 
 # dependencies
 /node_modules
+
+# keys
+*.pem
+
+# cache
+__pycache__/
