@@ -98,7 +98,6 @@ def register_user(mydb):
         print("Bairro inválido.")
         return None
 
-    tunnel, mydb = connect()
     if mydb:
         with mydb.cursor() as cursor:
             cursor.execute("USE surveydb")
@@ -116,7 +115,6 @@ def login_user(mydb):
     email = input("Email: ")
     senha = input("Senha: ")
     
-    tunnel, mydb = connect()
     if mydb:
         with mydb.cursor() as cursor:
             cursor.execute("USE surveydb")
@@ -126,13 +124,11 @@ def login_user(mydb):
     return user_id['id'] if user_id else None
 
 def is_admin(user_id, mydb):
-    tunnel, mydb = connect()
     if mydb:
         with mydb.cursor() as cursor:
             cursor.execute("USE surveydb")
             cursor.execute("SELECT role FROM user_login WHERE id = %s", (user_id,))
             result = cursor.fetchone()
-        tunnel.close()
         return result and result['role'] == 'admin'
     return False
 
