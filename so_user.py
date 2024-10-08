@@ -42,7 +42,7 @@ def edit_user_data(user_id, mydb):
     print("Dados pessoais atualizados com sucesso.")
 
 def read_survey_responses(user_id, mydb):
-    cursor = mydb.cursor(dictionary=True)
+    cursor = mydb.cursor()
     cursor.execute("USE surveydb")
 
     cursor.execute("SELECT question, answer FROM survey_responses WHERE user_id = %s", (user_id,))
