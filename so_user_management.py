@@ -1,7 +1,6 @@
 from so_create_db import connect
 
-def create_admin(nome, sobrenome, telefone, email, password):
-    tunnel, mydb = connect()
+def create_admin(nome, sobrenome, telefone, email, password, mydb):
     if mydb:
         try:
             with mydb.cursor() as cursor:
@@ -18,13 +17,10 @@ def create_admin(nome, sobrenome, telefone, email, password):
                     print("Novo usuário admin criado com sucesso.")
         except Exception as e:
             print(f"Erro ao criar usuário admin: {e}")
-        finally:
-            mydb.close()
     else:
         print("Erro ao conectar ao banco de dados.")
 
-def list_users():
-    tunnel, mydb = connect()
+def list_users(mydb):
     if mydb:
         try:
             role = input("Deseja listar (1) Administradores ou (2) Usuários? (digite 1 ou 2): ").strip()
@@ -60,8 +56,7 @@ def list_users():
     else:
         print("Erro ao conectar ao banco de dados.")
 
-def remove_user(email, admin_email):
-    tunnel, mydb = connect()
+def remove_user(email, admin_email, mydb):
     if mydb:
         try:
             with mydb.cursor() as cursor:
@@ -90,13 +85,10 @@ def remove_user(email, admin_email):
                     print("Nenhum usuário encontrado com o e-mail fornecido.")
         except Exception as e:
             print(f"Erro ao remover o usuário: {e}")
-        finally:
-            mydb.close()
     else:
         print("Erro ao conectar ao banco de dados.")
 
-def update_user(email):
-    tunnel, mydb = connect()
+def update_user(email, mydb):
     if mydb:
         try:
             with mydb.cursor() as cursor:
@@ -131,8 +123,6 @@ def update_user(email):
                     print("Nenhum usuário encontrado com o e-mail fornecido.")
         except Exception as e:
             print(f"Erro ao atualizar dados do usuário: {e}")
-        finally:
-            mydb.close()
     else:
         print("Erro ao conectar ao banco de dados.")
 

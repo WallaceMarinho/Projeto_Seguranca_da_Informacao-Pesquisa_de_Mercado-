@@ -1,17 +1,18 @@
 from so_survey import questions
 
 def view_user_data(user_id, mydb):
-    cursor = mydb.cursor(dictionary=True)
+    cursor = mydb.cursor()
     cursor.execute("USE surveydb")
     cursor.execute("SELECT nome, sobrenome, telefone, email, bairro FROM user_login WHERE id = %s", (user_id,))
-    user_data = cursor.fetchone()
-    if user_data:
+    row = cursor.fetchone()
+
+    if row:
         print("\n----- Seus Dados Pessoais -----")
-        print(f"Nome: {user_data['nome']}")
-        print(f"Sobrenome: {user_data['sobrenome']}")
-        print(f"Telefone: {user_data['telefone']}")
-        print(f"Email: {user_data['email']}")
-        print(f"Bairro: {user_data['bairro']}")
+        print(f"Nome: {row['nome']}")
+        print(f"Sobrenome: {row['sobrenome']}")
+        print(f"Telefone: {row['telefone']}")
+        print(f"Email: {row['email']}")
+        print(f"Bairro: {row['bairro']}")
     else:
         print("Usuário não encontrado.")
 
@@ -41,7 +42,7 @@ def edit_user_data(user_id, mydb):
     print("Dados pessoais atualizados com sucesso.")
 
 def read_survey_responses(user_id, mydb):
-    cursor = mydb.cursor(dictionary=True)
+    cursor = mydb.cursor()
     cursor.execute("USE surveydb")
 
     cursor.execute("SELECT question, answer FROM survey_responses WHERE user_id = %s", (user_id,))
