@@ -1,7 +1,6 @@
 from pymysql import IntegrityError
 from db_connection import mydb
 
-# Função para buscar os termos de uso da tabela no banco de dados
 def get_terms_of_use(mydb):
     if mydb:
         with mydb.cursor() as cursor:
@@ -39,7 +38,6 @@ bairros = [
 		'VILA MONTERREY'
 ]
 
-# Função para registrar um novo usuário no banco de dados
 def register_user(mydb, form_data, accept_optional):
     nome = form_data.get('nome')
     sobrenome = form_data.get('sobrenome')
@@ -61,13 +59,12 @@ def register_user(mydb, form_data, accept_optional):
                 user_id = cursor.lastrowid
                 return user_id
         except IntegrityError as e:
-            if e.args[0] == 1062:  # Código de erro para duplicata
-                return None  # Retorna None se o e-mail já estiver cadastrado
+            if e.args[0] == 1062:
+                return None
             else:
-                raise  # Re-lança a exceção para outros tipos de erro
+                raise
     return None
 
-# Função para login do usuário
 def login_user(mydb, form_data):
     email = form_data.get('email')
     senha = form_data.get('password')
@@ -80,7 +77,6 @@ def login_user(mydb, form_data):
         return user['id'] if user else None
     return None
 
-# Função para verificar se o usuário é admin
 def is_admin(user_id, mydb):
     if mydb:
         with mydb.cursor() as cursor:

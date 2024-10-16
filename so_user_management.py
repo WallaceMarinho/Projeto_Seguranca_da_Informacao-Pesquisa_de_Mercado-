@@ -104,7 +104,6 @@ def update_user(email, mydb):
                     password = input("Nova Senha (deixe em branco para não alterar): ")
 
                     if password:
-                        # Validação da senha
                         while len(password) != 6 or not password.isdigit():
                             print("A senha deve ter exatamente 6 dígitos.")
                             password = input("Nova Senha (6 dígitos): ")
