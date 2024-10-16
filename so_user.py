@@ -8,13 +8,12 @@ def view_user_data(user_id, mydb):
         row = cursor.fetchone()
 
         if row:
-            # Retorna os dados do usuário como um dicionário
             return {
                 'nome': row['nome'],
                 'sobrenome': row['sobrenome'],
                 'telefone': row['telefone'],
                 'bairro': row['bairro'],
-                'email': row['email']  # Adiciona o email
+                'email': row['email'] 
             }
         return None
 
@@ -31,7 +30,6 @@ def edit_user_data(user_id, mydb):
     if senha and (len(senha) != 6 or not senha.isdigit()):
         return jsonify({"success": False, "message": "A senha deve ter exatamente 6 dígitos."})
 
-    # Atualiza os dados no banco
     if nome:
         cursor.execute("UPDATE user_login SET nome = %s WHERE id = %s", (nome, user_id))
     if sobrenome:
@@ -47,10 +45,9 @@ def edit_user_data(user_id, mydb):
     return jsonify({"success": True, "message": "Dados pessoais atualizados com sucesso."})
 
 def get_user_terms_status(user_id, mydb):
-    cursor = mydb.cursor(DictCursor)  # Usar DictCursor em vez de dictionary=True
+    cursor = mydb.cursor(DictCursor)
     cursor.execute("USE surveydb")
     
-    # Obtém o status de aceitação dos termos opcionais do usuário
     cursor.execute("SELECT terms_optional_accepted FROM user_login WHERE id = %s", (user_id,))
     result = cursor.fetchone()
     
@@ -63,7 +60,6 @@ def update_user_terms(user_id, optional_terms_accepted, mydb):
     cursor = mydb.cursor()
     cursor.execute("USE surveydb")
     
-    # Atualiza a aceitação dos termos opcionais
     cursor.execute("UPDATE user_login SET terms_optional_accepted = %s WHERE id = %s", (optional_terms_accepted, user_id))
     mydb.commit()
 
@@ -72,13 +68,11 @@ def update_user_terms(user_id, optional_terms_accepted, mydb):
 def confirm_account_removal(user_id, password, mydb):
     cursor = mydb.cursor()
     cursor.execute("USE surveydb")
-    
-    # Verifica se a senha informada corresponde à senha do banco
+
     cursor.execute("SELECT password FROM user_login WHERE id = %s", (user_id,))
     result = cursor.fetchone()
     
     if result and password == result['password']:
-        # Exclui a conta do usuário
         cursor.execute("DELETE FROM user_login WHERE id = %s", (user_id,))
         mydb.commit()
         return True

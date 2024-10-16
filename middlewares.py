@@ -4,7 +4,7 @@ from flask import redirect, session, url_for, jsonify
 def login_required(f):
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
-            return redirect(url_for('app_routes.index'))  # Redireciona para a página inicial
+            return redirect(url_for('app_routes.index'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -13,7 +13,7 @@ def terms_accepted_required(f):
     def decorated_function(*args, **kwargs):
         terms_accepted = session.get('terms_accepted', {}).get('mandatory', False)
         if not terms_accepted:
-            return redirect(url_for('app_routes.index'))  # Redireciona para a página inicial
+            return redirect(url_for('app_routes.index'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -21,7 +21,7 @@ def terms_accepted_required(f):
 def registration_required(f):
     def decorated_function(*args, **kwargs):
         if 'registering' not in session:
-            return redirect(url_for('app_routes.index'))  # Redireciona para a página inicial
+            return redirect(url_for('app_routes.index'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -29,6 +29,6 @@ def registration_required(f):
 def admin_required(f):
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session or not session.get('is_admin', False):
-            return redirect(url_for('app_routes.index'))  # Redireciona para a página inicial
+            return redirect(url_for('app_routes.index'))
         return f(*args, **kwargs)
     return decorated_function
