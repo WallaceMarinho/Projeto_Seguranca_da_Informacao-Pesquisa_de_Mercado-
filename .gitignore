@@ -9,3 +9,8 @@
 
 # cache
 __pycache__/
+
+# archive
+
+# Folders
+/templates/

@@ -11,8 +11,8 @@ def connect():
             ssh_config['host'],
             ssh_port=ssh_config['port'],
             ssh_username=ssh_config['username'],
-            #ssh_password=ssh_config['password'],
-            ssh_pkey=ssh_config['private_key'],
+            ssh_password=ssh_config['password'],
+            #ssh_pkey=ssh_config['private_key'],
             remote_bind_address=ssh_config['remote_bind_address']
         )
 
@@ -31,7 +31,8 @@ def connect():
             user=mysql_config['user'],
             password=mysql_config['password'],
             port=mysql_config['port'],
-            cursorclass=pymysql.cursors.DictCursor
+            cursorclass=pymysql.cursors.DictCursor,
+            connect_timeout=60
         )
         print("Conexão com o banco de dados MariaDB/MySQL estabelecida com sucesso.")
 
@@ -53,6 +54,7 @@ def create_tables(mydb):
         mydb.commit()
         print("Tabelas criadas com sucesso.")
 
+# TESTAR ddl.sql e A CONEXÃO com DB
 if __name__ == "__main__":
     tunnel, mydb = connect()
     if mydb:
