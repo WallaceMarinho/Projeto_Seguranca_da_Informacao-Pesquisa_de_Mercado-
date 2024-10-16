@@ -13,8 +13,18 @@ def create_default_admin(mydb):
 
                 if not existing_admin:
                     cursor.execute("""
-                        INSERT INTO user_login (nome, sobrenome, telefone, email, password, bairro, role, is_default_admin)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        INSERT INTO user_login (
+                                   nome,
+                                   sobrenome,
+                                   telefone,
+                                   email,
+                                   password,
+                                   bairro,
+                                   role,
+                                   is_default_admin,
+                                   terms_mandatory_accepted,
+                                   terms_optional_accepted)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """, (
                         os.getenv("ADMIN_NAME"),
                         os.getenv("ADMIN_LAST_NAME"),
@@ -23,6 +33,8 @@ def create_default_admin(mydb):
                         os.getenv("ADMIN_PASSWORD"),
                         os.getenv("ADMIN_BAIRRO"),
                         os.getenv("ADMIN_ROLE"),
+                        True,
+                        True,
                         True
                     ))
                     mydb.commit()

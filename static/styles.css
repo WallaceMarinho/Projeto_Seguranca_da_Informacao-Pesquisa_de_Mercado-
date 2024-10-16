@@ -1,0 +1,16 @@
+:root {
+  /* --bg-color: #ffffff;  /* Cor de fundo padrão (branca) */
+  --bg-color: #f5f5f5;  /* Gelo */
+  /* --bg-color: #d3d3d3;  /* Cinza */
+  /* --bg-color: #e3f2fd;  /* Azul */
+  /* --bg-color: #fff3e0;  /* Laranja */
+  /* --bg-color: #fffde7;  /* Amarelo */
+  /* --bg-color: #e8f5e9;  /* Verde */
+}
+
+body {
+  background-color: var(--bg-color);
+  font-family: Arial, sans-serif; /* Adicionando uma fonte padrão */
+  margin: 0;
+  padding: 20px;
+}

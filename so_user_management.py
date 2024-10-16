@@ -51,8 +51,6 @@ def list_users(mydb):
                     print("Nenhum usuário encontrado.")
         except Exception as e:
             print(f"Erro ao listar usuários: {e}")
-        finally:
-            mydb.close()
     else:
         print("Erro ao conectar ao banco de dados.")
 
