@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Termos de Uso</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Termos de Uso</h1>
+    <h2>Termos Obrigatórios</h2>
+    <p>{{ terms.terms }}</p>
+
+    <h2>Termos Opcionais</h2>
+    <p>{{ terms.optional_terms }}</p>
+    <div class="message" style="color: red;">
+        {{ terms.message }}
+    </div>
+
+    <label>
+        <input type="checkbox" id="optionalTermsCheckbox" {% if user_accepted_optional_terms %} checked {% endif %}>
+        Aceito os termos opcionais
+    </label>
+    <button onclick="saveOptionalTerms('{{ terms.optional_version }}')">Salvar</button>
+
+    <script>
+        function saveOptionalTerms(version) {
+            const isChecked = document.getElementById('optionalTermsCheckbox').checked;
+            fetch('/save_terms', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ user_id: '{{ user_id }}', optionalTerms: isChecked })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Alteração dos termos opcionais salva com sucesso!');
+                } else {
+                    alert('Erro ao salvar os termos opcionais.');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

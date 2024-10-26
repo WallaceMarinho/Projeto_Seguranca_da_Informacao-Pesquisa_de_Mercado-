@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Google Callback</title>
+    <script type="text/javascript">
+        window.opener.postMessage({
+            email: "{{ email }}",
+            given_name: "{{ nome }}",
+            family_name: "{{ sobrenome }}"
+        }, window.location.origin);
+
+        window.close();
+    </script>
+</head>
+<body>
+    <p>Autenticando com o Google...</p>
+</body>
+</html>

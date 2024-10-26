@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Questionário</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Questionário</h1>
+    <form method="post" action="/survey">
+        {% for question in questions %}
+            <label>{{ loop.index }}. {{ question }}</label>
+            {% if loop.index == 1 or loop.index == 4 %}
+                <input type="number" name="question{{ loop.index }}" min="0" required>
+            {% else %}
+                <select name="question{{ loop.index }}" required>
+                    <option value="" disabled selected>Selecione uma opção</option>
+                    {% for option in response_options[loop.index] %}
+                        <option value="{{ loop.index0 }}">{{ option }}</option>
+                    {% endfor %}
+                </select>            
+            {% endif %}
+            <br><br>
+        {% endfor %}
+        <button type="submit">Enviar Respostas</button>
+    </form>
+</body>
+</html>

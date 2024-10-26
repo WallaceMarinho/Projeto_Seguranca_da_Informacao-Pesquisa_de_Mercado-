@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Usuário</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script>
+        function checkUserType() {
+            const userType = document.getElementById('user_type').value;
+            const emailField = document.getElementById('email');
+            const senhaField = document.getElementById('senha');
+
+            emailField.disabled = false;
+            emailField.readOnly = false;
+            senhaField.disabled = false;
+
+            if (userType === 'google') {
+                emailField.readOnly = true;
+                senhaField.disabled = true;
+            } else {
+                emailField.readOnly = false;
+                senhaField.disabled = false;
+            }
+        }
+
+        function loginWithGoogle() {
+            const popup = window.open('/login/google', 'Login Google', 'width=600,height=600');
+            window.addEventListener('message', function(event) {
+                if (event.origin === window.location.origin) {
+                    const emailField = document.getElementById('email');
+                    const nomeField = document.getElementById('nome');
+                    const sobrenomeField = document.getElementById('sobrenome');
+
+                    emailField.value = event.data.email;
+                    nomeField.value = event.data.given_name;
+                    sobrenomeField.value = event.data.family_name;
+
+                    emailField.readOnly = true;
+                    document.getElementById('senha').disabled = true;
+
+                    document.getElementById('user_type').value = 'google';
+                    checkUserType();
+                }
+            });
+        }
+
+        window.onload = checkUserType;
+    </script>    
+</head>
+<body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul class="flashes" style="list-style-type: none; padding: 0;">
+                {% for category, message in messages %}
+                    <li class="{{ category }}" style="color: red; font-weight: bold;">
+                        {{ message|safe }}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="/register">
+        <h2>Cadastro de Novo Usuário</h2>
+        <br>
+
+        <div style="margin-bottom: 20px;">
+            <button type="button" onclick="loginWithGoogle()" style="background-color: #4285F4; color: white; padding: 10px; border: none; cursor: pointer;">
+                Acessar com Google
+            </button>
+        </div>
+
+        <input type="hidden" id="user_type" name="user_type" value="{{ user_type }}">
+
+        <label for="nome">Nome:</label>
+        <input type="text" id="nome" name="nome" value="{{ nome }}" required><br>
+
+        <label for="sobrenome">Sobrenome:</label>
+        <input type="text" id="sobrenome" name="sobrenome" value="{{ sobrenome }}" required><br>
+
+        <label for="telefone">Telefone (com DDD):</label>
+        <input type="text" id="telefone" name="telefone" maxlength="11" title="Insira um telefone válido com DDD."><br>
+
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" value="{{ email }}" required readonly><br>
+
+        <label for="senha">Senha (6 dígitos):</label>
+        <input type="password" id="senha" name="senha" required minlength="6" maxlength="6" title="A senha deve ter exatamente 6 dígitos."><br>
+
+        <label for="bairro">Bairro:</label>
+        <select id="bairro" name="bairro" required>
+            <option value="">Selecione...</option>
+            {% for bairro in bairros %}
+                <option value="{{ bairro }}">{{ bairro }}</option>
+            {% endfor %}
+        </select>
+        <br>
+
+        <button type="submit">Cadastrar</button>
+        <button type="button" onclick="location.href='/'">Voltar</button>
+        <br><br>
+        <a href="/login">Já tem uma conta? Faça login</a>
+    </form>
+</body>
+</html>
