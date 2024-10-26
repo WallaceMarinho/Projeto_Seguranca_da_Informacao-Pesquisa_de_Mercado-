@@ -54,9 +54,10 @@ def get_survey(user_id):
 
 def submit_survey(user_id):
     data = request.form
+    print("Dados recebidos do formulário:", data)
     create_survey_response(user_id, mydb, data)
     session.pop('registering', None)
-    return redirect(url_for('app_routes.thank_you', user_id=user_id))
+    return redirect(url_for('app_routes.thank_you'))
 
 def create_survey_response(user_id, mydb, data):
     mycursor = mydb.cursor()
@@ -71,10 +72,10 @@ def create_survey_response(user_id, mydb, data):
                     answer = int(answer)
                 except ValueError:
                     answer = None
-                    print(f"Resposta inválida para a pergunta {i+1}")
+                    print(f"Resposta inválida para a pergunta {i+1}: esperado número, mas recebeu {answer}")
 
             if not answer:
-                raise ValueError(f"Erro: todas as perguntas devem ser respondidas.")
+                raise ValueError(f"Erro: todas as perguntas devem ser respondidas. Pergunta {i+1} vazia.")
 
             mycursor.execute("""
                 INSERT INTO survey_responses (user_id, question, answer)
@@ -90,6 +91,31 @@ def create_survey_response(user_id, mydb, data):
 
     finally:
         mycursor.close()
+
+def has_saved_survey(user_id, mydb):
+    cursor = mydb.cursor()
+    query = "SELECT COUNT(*) as total FROM survey_responses WHERE user_id = %s"
+    cursor.execute(query, (user_id,))
+    
+    try:
+        result = cursor.fetchone()
+        if result is None:
+            return False
+        count = result['total']
+        return count > 0
+    except Exception as e:
+        print("Error fetching data:", e)
+        return False
+    finally:
+        cursor.close()
+
+def read_survey_responses(user_id, mydb):
+    cursor = mydb.cursor()
+    cursor.execute("USE surveydb")
+    query = "SELECT question, answer FROM survey_responses WHERE user_id = %s"
+    cursor.execute(query, (user_id,))
+    user_responses = cursor.fetchall()
+    return user_responses
 
 def edit_survey_responses(user_id):
     user_responses = read_survey_responses(user_id, mydb)
@@ -125,30 +151,5 @@ def update_survey_responses(user_id, mydb, data):
         print(f"Erro ao atualizar as respostas: {e}")
         mydb.rollback()
 
-    finally:
-        cursor.close()
-
-def read_survey_responses(user_id, mydb):
-    cursor = mydb.cursor()
-    cursor.execute("USE surveydb")
-    query = "SELECT question, answer FROM survey_responses WHERE user_id = %s"
-    cursor.execute(query, (user_id,))
-    user_responses = cursor.fetchall()
-    return user_responses
-
-def has_saved_survey(user_id, mydb):
-    cursor = mydb.cursor()
-    query = "SELECT COUNT(*) as total FROM survey_responses WHERE user_id = %s"
-    cursor.execute(query, (user_id,))
-    
-    try:
-        result = cursor.fetchone()
-        if result is None:
-            return False
-        count = result['total']
-        return count > 0
-    except Exception as e:
-        print("Error fetching data:", e)
-        return False
     finally:
         cursor.close()

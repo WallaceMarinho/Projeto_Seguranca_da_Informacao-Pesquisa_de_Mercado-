@@ -6,11 +6,13 @@
 
 # keys
 *.pem
+*.zip
 
 # cache
 __pycache__/
 
 # archive
+*client_secret*
 
 # Folders
 /templates/
