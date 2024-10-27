@@ -4,6 +4,6 @@ flask_session==0.7.0rc2
 PyMySQL==1.1.1
 python-dotenv==0.21.1
 python_bcrypt==0.3.2
-redis==5.1.1
+redis==  5.1.0a1
 sshtunnel==0.4.0
 Werkzeug==2.3.7
