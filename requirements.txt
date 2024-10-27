@@ -1,6 +1,6 @@
 Authlib==1.2.1
 Flask==2.2.5
-flask_session==0.8.0
+flask_session==0.7.0rc2
 PyMySQL==1.1.1
 python-dotenv==0.21.1
 python_bcrypt==3.2.2
