@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aceite dos Termos e Política de Privacidade</title>
+</head>
+<body>
+    <h1>Aceite os Termos de Uso e Política de Privacidade</h1>
+    
+    <form action="/accept-terms" method="POST">
+        <div>
+            <input type="checkbox" id="terms" name="terms">
+            <label for="terms">Eu aceito os Termos de Uso - Versão {{ terms_version }}</label>
+        </div>
+        
+        <div>
+            <input type="checkbox" id="privacy" name="privacy">
+            <label for="privacy">Eu aceito a Política de Privacidade - Versão {{ privacy_version }}</label>
+        </div>
+
+        <button id="accept-btn" type="submit" disabled>Aceitar e acessar</button>
+    </form>
+</body>
+<script>
+    const termsCheckbox = document.getElementById('terms');
+    const privacyCheckbox = document.getElementById('privacy');
+    const acceptBtn = document.getElementById('accept-btn');
+
+    function toggleButtonState() {
+        acceptBtn.disabled = !(termsCheckbox.checked && privacyCheckbox.checked);
+    }
+
+    termsCheckbox.addEventListener('change', toggleButtonState);
+    privacyCheckbox.addEventListener('change', toggleButtonState);
+</script>
+</html>

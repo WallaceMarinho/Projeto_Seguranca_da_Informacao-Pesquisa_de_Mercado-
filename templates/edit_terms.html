@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Termos</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<h2>Editar Termos de Uso</h2>
+<form method="POST" action="/admin/edit-terms">
+    <label for="terms">Termos Obrigatórios:</label>
+    <textarea id="terms" name="terms" required maxlength="2000">{{ terms.terms }}</textarea><br><br>
+
+    <label for="optional_terms">Termos Opcionais:</label>
+    <textarea id="optional_terms" name="optional_terms" maxlength="1000">{{ terms.optional_terms }}</textarea><br><br>
+
+    <button type="submit">Salvar</button>
+</form>

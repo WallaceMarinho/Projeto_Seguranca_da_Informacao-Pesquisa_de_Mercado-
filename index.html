@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Informações do Servidor</title>
+  <style>
+    /* Estilos diferentes para cada servidor */
+    body.VM1 { background-color: lightblue; }
+    body.VM2 { background-color: lightgreen; }
+    body.unknown { background-color: lightgray; }
+  </style>
+</head>
+<body class="{{ server_name }}">
+  <h1>Você está no servidor: <span id="server-info">{{ server_name }}</span></h1>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+  <script>
+    var socket = io();
+    socket.on('server_info', function(data) {
+      document.getElementById('server-info').textContent = data.data;
+      document.body.className = data.data; // Atualiza a classe do body com o nome do servidor
+    });
+  </script>
+</body>
+</html>

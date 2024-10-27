@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aceitar Termos</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <h1>Aceitar Termos de Uso</h1>
+    <form id="termsForm" onsubmit="submitTerms(event)">
+        <p><strong>Termos Obrigatórios:</strong> <a href="#" onclick="openPopup('mandatory')">Ver</a></p>
+        <input type="checkbox" id="mandatoryTerms" name="mandatoryTerms" required>
+        <label for="mandatoryTerms">Eu aceito os termos obrigatórios.</label><br>
+
+        <p><strong>Termos Opcionais:</strong> <a href="#" onclick="openPopup('optional')">Ver</a></p>
+        <input type="checkbox" id="optionalTerms" name="optionalTerms">
+        <label for="optionalTerms">Eu aceito os termos opcionais.</label><br>
+
+        <p><strong>Política de Privacidade:</strong> <a href="#" onclick="openPopup('privacy')">Ver</a></p>
+        <input type="checkbox" id="privacyPolicy" name="privacyPolicy" required>
+        <label for="privacyPolicy">Eu aceito a Política de Privacidade.</label><br><br>
+
+        <button type="submit">Aceitar Termos</button>
+    </form>
+
+    <p id="status"></p>
+
+    <script>
+        function openPopup(termType) {
+            let url;
+            let title;
+
+            switch (termType) {
+                case 'mandatory':
+                    url = '/terms/mandatory';
+                    title = 'Termos Obrigatórios';
+                    break;
+                case 'optional':
+                    url = '/terms/optional';
+                    title = 'Termos Opcionais';
+                    break;
+                case 'privacy':
+                    url = '/terms/privacy';
+                    title = 'Política de Privacidade';
+                    break;
+            }
+
+            window.open(url, title, 'width=600,height=400,scrollbars=yes');
+        }
+
+        async function submitTerms(event) {
+            event.preventDefault();
+
+            const mandatoryTermsAccepted = document.getElementById('mandatoryTerms').checked;
+            const optionalTermsAccepted = document.getElementById('optionalTerms').checked;
+            const privacyPolicyAccepted = document.getElementById('privacyPolicy').checked;
+
+            const response = await fetch('/submit_terms', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    mandatoryTermsAccepted: mandatoryTermsAccepted,
+                    optionalTermsAccepted: optionalTermsAccepted,
+                    privacyPolicyAccepted: privacyPolicyAccepted
+                })
+            });
+
+            const data = await response.json();
+            document.getElementById('status').innerText = data.message || data.error;
+
+            if (response.ok && mandatoryTermsAccepted && privacyPolicyAccepted) {
+                setTimeout(() => {
+                    location.href = '/register';
+                }, 2000);
+            }
+        }
+    </script>
+
+    <br>
+    <p><a href="/">Voltar</a></p>
+</body>
+</html>

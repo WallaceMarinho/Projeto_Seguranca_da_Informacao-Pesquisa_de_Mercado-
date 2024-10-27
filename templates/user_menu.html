@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu do Usuário</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .edit-form {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .visible {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Menu do Usuário</h1>
+    <div class="menu">
+        <div class="feedback" id="feedbackMessage"></div>
+        
+        <div>
+            <a href="#" onclick="showEditForm()">Meus Dados</a><br>
+            <a href="#" onclick="toggleSurveyEditForm()">Questionário</a><br>
+            <a href="#" onclick="manageTerms()">Termos de Uso</a>
+        </div>
+
+        <div class="edit-form" id="editForm">
+            <h2>Editar Dados Pessoais</h2>
+            <form id="userDataForm">
+                <label for="nome">Nome:</label>
+                <input type="text" id="nome" name="nome" required><br>
+                <label for="sobrenome">Sobrenome:</label>
+                <input type="text" id="sobrenome" name="sobrenome" required><br>
+                <label for="telefone">Telefone:</label>
+                <input type="text" id="telefone" name="telefone"><br>
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" readonly><br>
+                <label for="bairro">Bairro:</label>
+                <select id="bairro" name="bairro">
+                    <option value="">Selecione o bairro</option>
+                </select><br>
+        
+                <label for="senha">Nova Senha (6 dígitos):</label>
+                <input type="password" id="senha" name="senha" maxlength="6"><br>
+        
+                <button type="button" onclick="submitEditUserData()">Salvar</button>
+            </form>
+        </div>
+
+        <div class="edit-form" id="surveyEditForm">
+            <h2>Editar Respostas do Questionário</h2>
+            <form id="surveyForm"></form>
+            <button type="button" onclick="submitEditSurveyResponses()">Salvar Alterações</button>
+        </div>
+
+        <div class="edit-form" id="termsForm" style="display: none;">
+            <h2>Termos de Uso</h2>
+            
+            <p><strong>Termos Obrigatórios:</strong> <a href="#" onclick="openTermsPopup('mandatory')">Ver</a></p>
+            <div>
+                <input type="checkbox" id="mandatoryTerms" name="mandatoryTerms" checked disabled>
+                <label for="mandatoryTerms">Eu aceito os termos obrigatórios. <span style="color: red;">*</span></label>
+                <p style="color: red; font-style: bold;">
+                    * Para cancelar seu consentimento com os termos obrigatórios ou Política de privacidade, remova sua conta (<i>Excluir Conta</i> no seu menu) <br> ou solicite a remoção enviando um email para <i>admin@system.com</i>.
+                </p>
+            </div>
+        
+            <p><strong>Termos Opcionais:</strong> <a href="#" onclick="openTermsPopup('optional')">Ver</a></p>
+            <div>
+                <input type="checkbox" id="optionalTerms" name="optionalTerms">
+                <label for="optionalTerms">Eu aceito os termos opcionais.</label><br><br>
+            </div>
+
+            <p><strong>Política de Privacidade:</strong> <a href="#" onclick="openTermsPopup('privacy')">Ver</a></p>
+            <div>
+                <input type="checkbox" id="privacyPolicy" name="privacyPolicy" checked disabled>
+                <label for="privacyPolicy">Eu aceito a Política de Privacidade. <span style="color: red;">*</span></label>
+            </div>
+        
+            <button type="button" onclick="saveTerms()">Salvar Alterações</button>
+            <p id="feedbackMessage"></p>
+        </div>
+
+        <div style="margin-top: 40px;">
+            <a href="#" onclick="removeAccount()">Excluir Conta</a>
+        </div>
+
+        <button style="margin-top: 40px;" onclick="logout()">Sair</button>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            fetch('/check_optional_terms_update')
+            .then(response => response.json())
+            .then(data => {
+                if (data.updated) {
+                    if (data.was_accepted) {
+                        alert("O Termo Opcional foi atualizado e desmarcado. Acesse a guia Termos de Uso para ativá-lo novamente.");
+                    } else {
+                        alert("O Termo Opcional foi atualizado. Você pode ler e ativá-lo na guia Termos de Uso.");
+                    }
+                }
+            });
+        });
+        function showEditForm() {
+            const editForm = document.getElementById("editForm");
+            editForm.classList.toggle("visible");
+
+            if (editForm.classList.contains("visible")) {
+                loadUserData();
+            }
+        }
+
+        function loadUserData() {
+            const userId = "{{ user_id }}";
+
+            fetch(`/get_user_data?user_id=${userId}`, {
+                method: 'GET'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('nome').value = data.user.nome;
+                    document.getElementById('sobrenome').value = data.user.sobrenome;
+                    document.getElementById('telefone').value = data.user.telefone;
+                    document.getElementById('email').value = data.user.email;
+
+                    const bairroSelect = document.getElementById('bairro');
+                    bairroSelect.innerHTML = '';
+
+                    data.bairros.forEach(bairro => {
+                        const option = document.createElement('option');
+                        option.value = bairro;
+                        option.text = bairro;
+                        if (bairro === data.user.bairro) {
+                            option.selected = true;
+                        }
+                        bairroSelect.appendChild(option);
+                    });
+                } else {
+                    document.getElementById("feedbackMessage").textContent = data.message;
+                }
+            })
+            .catch(error => {
+                document.getElementById("feedbackMessage").textContent = "Erro ao carregar os dados do usuário.";
+            });
+        }
+
+        function toggleSurveyEditForm() {
+            const surveyFormElement = document.getElementById("surveyEditForm");
+            if (surveyFormElement.classList.contains("visible")) {
+                surveyFormElement.classList.remove("visible");
+            } else {
+                surveyFormElement.classList.add("visible");
+                loadAndShowSurveyResponses();
+            }
+        }
+
+        function loadAndShowSurveyResponses() {
+            const form = document.getElementById("surveyForm");
+            const userId = "{{ user_id }}";
+            
+            form.innerHTML = '';
+
+            fetch(`/edit_survey_responses?user_id=${userId}`, {
+                method: 'GET'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    data.questions.forEach((question, index) => {
+                        const label = document.createElement('label');
+                        label.innerHTML = `${index + 1}. ${question}`;
+                        form.appendChild(label);
+
+                        const answer = data.user_responses[index + 1] || '';
+                        let input;
+
+                        if (index === 0 || index === 3) {
+                            input = document.createElement('input');
+                            input.type = 'number';
+                            input.name = `question${index + 1}`;
+                            input.value = answer;
+                            input.min = '0';
+                            input.required = true;
+                        } else {
+                            input = document.createElement('select');
+                            input.name = `question${index + 1}`;
+                            const optionDefault = document.createElement('option');
+                            optionDefault.value = '';
+                            optionDefault.disabled = true;
+                            optionDefault.innerHTML = 'Selecione uma opção';
+                            input.appendChild(optionDefault);
+                            
+                            data.response_options[index + 1].forEach((option, i) => {
+                                const opt = document.createElement('option');
+                                opt.value = i;
+                                opt.innerHTML = option;
+                                if (answer == i) {
+                                    opt.selected = true;
+                                }
+                                input.appendChild(opt);
+                            });
+                        }
+
+                        form.appendChild(input);
+                        form.appendChild(document.createElement('br'));
+                    });
+                } else {
+                    document.getElementById("feedbackMessage").textContent = data.message;
+                }
+            })
+            .catch(error => {
+                document.getElementById("feedbackMessage").textContent = "Erro ao carregar as respostas do questionário.";
+            });
+        }
+
+        function submitEditUserData() {
+            const formData = new FormData(document.getElementById("userDataForm"));
+            fetch('/edit_user_data', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("feedbackMessage").textContent = data.message;
+                if (data.success) {
+                    showEditForm();
+                }
+            })
+            .catch(error => {
+                document.getElementById("feedbackMessage").textContent = "Erro ao atualizar os dados.";
+            });
+        }
+
+        function submitEditSurveyResponses() {
+            const formData = new FormData(document.getElementById("surveyForm"));
+            fetch('/edit_survey_responses', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("feedbackMessage").textContent = data.message;
+                if (data.success) {
+                    toggleSurveyEditForm();
+                }
+            })
+            .catch(error => {
+                document.getElementById("feedbackMessage").textContent = "Erro ao atualizar as respostas do questionário.";
+            });
+        }
+
+        function openTermsPopup(termType) {
+            let url;
+            let title;
+
+            switch (termType) {
+                case 'mandatory':
+                    url = '/terms/mandatory';
+                    title = 'Termos Obrigatórios';
+                    break;
+                case 'optional':
+                    url = '/terms/optional';
+                    title = 'Termos Opcionais';
+                    break;
+                case 'privacy':
+                    url = '/terms/privacy';
+                    title = 'Política de Privacidade';
+                    break;
+            }
+
+            window.open(url, title, 'width=600,height=400,scrollbars=yes');
+        }
+
+        function manageTerms() {
+            const termsForm = document.getElementById("termsForm");
+            termsForm.style.display = termsForm.style.display === "none" ? "block" : "none";
+
+            if (termsForm.style.display === "block") {
+                fetch('/manage_terms', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ user_id: "{{ user_id }}" })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('optionalTerms').checked = data.optional_terms;
+                    } else {
+                        document.getElementById("feedbackMessage").textContent = data.message;
+                    }
+                });
+            }
+        }
+
+        function saveTerms() {
+            const optionalTermsAccepted = document.getElementById('optionalTerms').checked;
+
+            fetch('/save_terms', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    user_id: "{{ user_id }}",
+                    optionalTerms: optionalTermsAccepted
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("feedbackMessage").textContent = data.message;
+                if (data.success) {
+                    document.getElementById("termsForm").style.display = "none";
+            }
+            });
+        }
+
+        function removeAccount() {
+            if (confirm("Tem certeza que deseja excluir sua conta? Esta ação é irreversível.")) {
+                const isGoogleUser = "{{ is_google_user }}";
+                let password;
+
+                if (!isGoogleUser) {
+                    password = prompt("Por favor, insira sua senha para confirmar a exclusão:");
+                }
+
+                fetch('/remove_account', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password: password })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    if (data.success) {
+                        window.location.href = '/';
+                    }
+                });
+            }
+        }
+
+        function logout() {
+            fetch('/logout', { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        document.getElementById("feedbackMessage").textContent = "Você foi desconectado.";
+                        setTimeout(() => {
+                            window.location.href = "/";
+                        }, 2000); 
+                    } else {
+                        document.getElementById("feedbackMessage").textContent = "Erro ao desconectar.";
+                    }
+                })
+                .catch(error => {
+                    document.getElementById("feedbackMessage").textContent = "Erro na conexão com o servidor.";
+                });
+        }
+    </script>
+</body>
+</html>
