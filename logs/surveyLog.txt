@@ -1,0 +1,2 @@
+2024-10-28 19:04:47.551788 | Evento: Novo usuário adicionado | Tabela: user_login | ID: 4
+2024-10-28 19:04:47.558168 | Evento: Termos e Política de privacidade aceitos | Tabela: user_terms_and_privacy_acceptance | ID: 4 | Info adicional: Versão dos Termos: 0000, Versão da Privacidade: 0000
