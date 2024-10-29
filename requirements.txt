@@ -10,3 +10,4 @@ redis==5.1.1
 sshtunnel==0.4.0
 Werkzeug==3.0.2
 paramiko==3.5.0
+cffi==1.16.0
