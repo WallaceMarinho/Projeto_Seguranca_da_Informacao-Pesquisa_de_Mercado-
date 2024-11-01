@@ -2,12 +2,16 @@ import os
 import signal
 from flask import Flask, request, jsonify
 from routes import app_routes
+from routes_adm import admin_routes
 from session_config import configure_session
 from so_create_adm import create_default_admin
 from db_connection import mydb, tunnel, keep_connection_alive
 from so_create_db import create_tables
 
 app = Flask(__name__)
+
+app.register_blueprint(app_routes)
+app.register_blueprint(admin_routes, url_prefix='/admin')
 
 configure_session(app)
 
@@ -55,8 +59,6 @@ if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
     except ConnectionError as e:
         print(e)
         exit(1)
-
-app.register_blueprint(app_routes)
 
 @app.route('/shutdown', methods=['POST'])
 def shutdown():

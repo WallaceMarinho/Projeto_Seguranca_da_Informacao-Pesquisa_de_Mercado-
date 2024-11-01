@@ -1,4 +1,13 @@
-from so_create_db import connect
+from pymysql.cursors import DictCursor
+
+def is_admin(user_id, mydb):
+    if mydb:
+        with mydb.cursor() as cursor:
+            cursor.execute("USE surveydb")
+            cursor.execute("SELECT role FROM user_login WHERE id = %s", (user_id))
+            user = cursor.fetchone()
+        return user and user['role'] == 'admin'
+    return False
 
 def create_admin(nome, sobrenome, telefone, email, password, mydb):
     if mydb:
@@ -20,26 +29,45 @@ def create_admin(nome, sobrenome, telefone, email, password, mydb):
     else:
         print("Erro ao conectar ao banco de dados.")
 
-def list_users(mydb):
+def update_terms_policy(mydb, type, content):
     if mydb:
         try:
-            role = input("Deseja listar (1) Administradores ou (2) Usuários? (digite 1 ou 2): ").strip()
-            role_condition = "role = 'admin'" if role == '1' else "role = 'user'" if role == '2' else None
-            
-            if role_condition is None:
-                print("Opção inválida. Por favor, escolha 1 para Administradores ou 2 para Usuários.")
-                return
-            
             with mydb.cursor() as cursor:
+                cursor.execute("USE surveydb")
+                if type == 'terms':
+                    cursor.execute("UPDATE policies SET terms_content = %s, terms_version = terms_version + 1", (content,))
+                elif type == 'privacy':
+                    cursor.execute("UPDATE policies SET privacy_content = %s, privacy_version = privacy_version + 1", (content,))
+                else:
+                    print("Tipo inválido. Escolha 'terms' ou 'privacy'.")
+                    return
+                mydb.commit()
+                print("Política/Termo atualizado com sucesso.")
+        except Exception as e:
+            print(f"Erro ao atualizar política/termos: {e}")
+
+def list_users(mydb, role):
+    if mydb:
+        try:
+            if role == 'user':
+                role_condition = "role = 'user'"
+            elif role == 'admin':
+                role_condition = "role = 'admin' AND is_default_admin = FALSE"
+            else:
+                print("Opção inválida. Por favor, escolha 'admin' ou 'user'.")
+                return []
+
+            with mydb.cursor(cursor=DictCursor) as cursor:
                 cursor.execute(f"SELECT * FROM user_login WHERE {role_condition} ORDER BY id")
-                users = cursor.fetchall()
-                
+                users = cursor.fetchall() or []
+
                 if users:
                     for user in users:
                         print(f"ID: {user['id']}, Email: {user['email']}, Nome: {user['nome']}, "
                               f"Sobrenome: {user['sobrenome']}, Data de Cadastro: {user['data_cadastro']}")
+
                         cursor.execute("SELECT resposta FROM survey_responses WHERE user_id = %s", (user['id'],))
-                        respostas = cursor.fetchall()
+                        respostas = cursor.fetchall() or []
                         if respostas:
                             print("Respostas do questionário:")
                             for resposta in respostas:
@@ -49,42 +77,14 @@ def list_users(mydb):
                         print("---")
                 else:
                     print("Nenhum usuário encontrado.")
+                
+                return users
         except Exception as e:
             print(f"Erro ao listar usuários: {e}")
+            return []
     else:
         print("Erro ao conectar ao banco de dados.")
-
-def remove_user(email, admin_email, mydb):
-    if mydb:
-        try:
-            with mydb.cursor() as cursor:
-                cursor.execute("SELECT * FROM user_login WHERE email = %s", (email,))
-                user_to_remove = cursor.fetchone()
-                cursor.execute("SELECT * FROM user_login WHERE email = %s", (admin_email,))
-                admin_user = cursor.fetchone()
-
-                if user_to_remove:
-                    if user_to_remove['role'] == 'admin' and admin_user['is_default_admin'] != True:
-                        print("Você não tem permissão para remover um usuário admin.")
-                        return
-                    
-                    print("Dados do usuário a ser removido:")
-                    print(f"ID: {user_to_remove['id']}, Email: {user_to_remove['email']}, Nome: {user_to_remove['nome']}, "
-                          f"Sobrenome: {user_to_remove['sobrenome']}, Data de Cadastro: {user_to_remove['data_cadastro']}")
-                    confirm = input("Tem certeza que deseja remover este usuário? (s/n): ").strip().lower()
-                    
-                    if confirm == 's':
-                        cursor.execute("DELETE FROM user_login WHERE email = %s", (email,))
-                        mydb.commit()
-                        print("Usuário removido com sucesso.")
-                    else:
-                        print("Operação cancelada.")
-                else:
-                    print("Nenhum usuário encontrado com o e-mail fornecido.")
-        except Exception as e:
-            print(f"Erro ao remover o usuário: {e}")
-    else:
-        print("Erro ao conectar ao banco de dados.")
+        return []
 
 def update_user(email, mydb):
     if mydb:
@@ -123,47 +123,40 @@ def update_user(email, mydb):
     else:
         print("Erro ao conectar ao banco de dados.")
 
-def main():
-    while True:
-        print("\nMenu Principal")
-        print("1. Criar novo usuário admin")
-        print("2. Excluir usuário")
-        print("3. Listar usuários")
-        print("4. Alterar dados do usuário")
-        print("5. Sair")
-        choice = input("Escolha uma opção: ")
+def remove_user_by_id(user_id, admin_email, mydb):
+    if mydb:
+        try:
+            with mydb.cursor() as cursor:
+                cursor.execute("SELECT * FROM user_login WHERE id = %s", (user_id,))
+                user_to_remove = cursor.fetchone()
+                cursor.execute("SELECT * FROM user_login WHERE email = %s", (admin_email,))
+                admin_user = cursor.fetchone()
 
-        if choice == '1':
-            nome = input("Nome: ")
-            sobrenome = input("Sobrenome: ")
-            telefone = input("Telefone (com DDD): ")
-            email = input("Email: ")
-            password = input("Senha (6 dígitos): ")
-
-            while len(password) != 6 or not password.isdigit():
-                print("A senha deve ter exatamente 6 dígitos.")
-                password = input("Senha (6 dígitos): ")
-            
-            create_admin(nome, sobrenome, telefone, email, password)
-
-        elif choice == '2':
-            email = input("Digite o email do usuário a ser excluído: ")
-            admin_email = input("Digite seu email (admin) para confirmação: ")
-            remove_user(email, admin_email)
-
-        elif choice == '3':
-            list_users() 
-
-        elif choice == '4':
-            email = input("Digite o email do usuário para alterar dados: ")
-            update_user(email)
-
-        elif choice == '5':
-            print("Saindo...")
-            break
-
-        else:
-            print("Opção inválida.")
-
-if __name__ == "__main__":
-    main()
+                if user_to_remove:
+                    if user_to_remove['role'] == 'admin' and admin_user['is_default_admin'] != True:
+                        print("Você não tem permissão para remover um usuário admin.")
+                        return False
+                    
+                    print("Dados do usuário a ser removido:")
+                    print(f"ID: {user_to_remove['id']}, Email: {user_to_remove['email']}, Nome: {user_to_remove['nome']}, "
+                          f"Sobrenome: {user_to_remove['sobrenome']}, Data de Cadastro: {user_to_remove['data_cadastro']}")
+                    
+                    confirm = input("Tem certeza que deseja remover este usuário? (s/n): ").strip().lower()
+                    
+                    if confirm == 's':
+                        cursor.execute("DELETE FROM user_login WHERE id = %s", (user_id,))
+                        mydb.commit()
+                        print("Usuário removido com sucesso.")
+                        return True
+                    else:
+                        print("Operação cancelada.")
+                        return False
+                else:
+                    print("Nenhum usuário encontrado com o ID fornecido.")
+                    return False
+        except Exception as e:
+            print(f"Erro ao remover o usuário: {e}")
+            return False
+    else:
+        print("Erro ao conectar ao banco de dados.")
+        return False

@@ -1,9 +1,9 @@
 from flask import Blueprint, flash, render_template, request, redirect, session, url_for, jsonify
 from middlewares import admin_required, login_required, registration_required, terms_accepted_required
 from so_survey import read_survey_responses, submit_survey, survey, update_survey_responses, questions, response_options
-from so_terms_login import get_user_optional_version, register_user, login_user, is_admin, get_terms_and_privacy, bairros, update_user_terms_acceptance, verify_terms_version
+from so_terms_login import get_user_optional_version, register_user, login_user, get_terms_and_privacy, bairros, update_user_terms_acceptance, verify_terms_version
 from db_connection import mydb
-from so_user import confirm_account_removal, edit_user_data, get_user_terms_status, update_user_optional_terms, view_user_data
+from so_user import edit_user_data, get_user_terms_status, remove_google_user_account, remove_local_user_account, update_user_optional_terms, view_user_data
 from config import google, userinfo
 from pymysql.cursors import DictCursor
 
@@ -40,18 +40,25 @@ def google_callback():
             user_id = cursor.fetchone()
 
         if user_id:
+            # Usuário já existe, procede com o login
             session['user_id'] = user_id['id']
+            session['provider'] = 'google'
             terms_status = verify_terms_version(mydb, user_id['id'])
 
             if not terms_status['terms_ok'] or not terms_status['privacy_ok']:
                 return redirect(url_for('app_routes.upd_terms_route', alert='updated_terms'))
-            
+
             return redirect(url_for('app_routes.survey_route', user_id=user_id['id']))
+
         else:
-            return render_template('google_callback.html', 
-                                   email=user_info['email'], 
-                                   nome=user_info['given_name'], 
-                                   sobrenome=user_info['family_name'])
+            if session.get('registering', False):
+                return render_template('google_callback.html', 
+                                       email=user_info['email'], 
+                                       nome=user_info['given_name'], 
+                                       sobrenome=user_info['family_name'])
+            else:
+                flash('Credenciais inválidas, verifique email ou cadastre-se.', 'error')
+                return redirect(url_for('app_routes.login'))
 
     else:
         flash('Erro ao fazer login com o Google. Tente novamente.', 'error')
@@ -88,8 +95,6 @@ def register():
 
         elif user_type == 'google':
             email_from_session = session.get('email')
-            print(email_from_session)
-            print(email)
             if not email_from_session or email_from_session != email:
                 flash('Erro: O email fornecido não corresponde ao email autenticado pelo Google.', 'error')
                 return redirect(url_for('app_routes.register'))
@@ -100,22 +105,13 @@ def register():
             flash('Insira o Telefone com DDD.', 'error')
             return redirect(url_for('app_routes.register'))
         
-        print("Dados do usuário para cadastro:", {
-            'nome': nome,
-            'sobrenome': sobrenome,
-            'telefone': telefone,
-            'email': email,
-            'senha': '***' if senha else None,
-            'bairro': bairro,
-            'user_type': user_type,
-        })
-
         provider = 'local' if user_type == 'local' else 'google'
         user_id = register_user(
             mydb, nome, sobrenome, telefone, email, senha, bairro, provider
         )
 
         if user_id:
+            session['provider'] = provider
             return redirect(url_for('app_routes.survey_route'))
         else:
             flash('Erro ao cadastrar usuário. Tente novamente.', 'error')
@@ -133,21 +129,37 @@ def register():
 @app_routes.route('/login', methods=['GET', 'POST'])
 def login():
     error_message = None 
+
     if request.method == 'POST':
         form_data = request.form
         login_result = login_user(mydb, form_data)
+        print(login_result)
+
         if login_result:
             user_id = login_result["user_id"]
             session['user_id'] = user_id
-            session.pop('registering', None)
-            terms_status = verify_terms_version(mydb, user_id)
+            session['provider'] = login_result.get('provider')
+            session['role'] = login_result.get('role')
+            session['is_default_admin'] = login_result.get('is_default_admin')
 
+            print(f"Role armazenada na sessão: {session['role']}")  # Para depuração
+            print(f"Is default admin armazenado na sessão: {session['is_default_admin']}")  # Para depuração
+
+            user_role = session.get("role")
+            print(user_role)
+            is_default_admin = session.get("is_default_admin")
+            print(is_default_admin)
+            session.pop('registering', None)
+
+            terms_status = verify_terms_version(mydb, user_id)
             if not terms_status['terms_ok'] or not terms_status['privacy_ok']:
                 return redirect(url_for('app_routes.upd_terms_route', alert='updated_terms'))
 
+            if user_role == 'admin' and is_default_admin:
+                return redirect(url_for('admin_routes.admin_dashboard'))
+
             return redirect(url_for('app_routes.survey_route', user_id=user_id))
-        else:
-            error_message = "Credenciais inválidas."
+        error_message = "Credenciais inválidas, verifique email e senha ou cadastre-se."
     return render_template('login.html', error_message=error_message)
 
 @app_routes.route('/accept-terms', methods=['POST'])
@@ -294,7 +306,7 @@ def save_terms_route():
     if optional_terms_accepted is None:
         return jsonify({'success': False, 'message': 'Aceitação dos termos opcionais não fornecida.'})
 
-    success = update_user_optional_terms(user_id, 'version_optional_placeholder', optional_terms_accepted, mydb)  # Use um valor real conforme necessário
+    success = update_user_optional_terms(user_id, optional_terms_accepted, mydb)  # Passando apenas dois argumentos agora
     if success:
         return jsonify({'success': True, 'message': 'Termos opcionais salvos com sucesso.'})
     else:
@@ -365,14 +377,30 @@ def submit_edit_survey_responses():
 # @login_required
 def remove_account_route():
     user_id = session.get('user_id')
-    password = request.json.get('password')
+    provider = session.get('provider')
+    print(provider)
 
-    if user_id:
-        if confirm_account_removal(user_id, password, mydb):
-            session.pop('user_id', None)
-            return jsonify({"success": True, "message": "Conta removida com sucesso."})
-        return jsonify({"success": False, "message": "Senha inválida. Falha ao remover a conta."}), 400
-    return jsonify({"success": False, "message": "Usuário não autenticado."}), 401
+    # Verificar se o usuário está logado
+    if not user_id:
+        return jsonify({"success": False, "message": "Usuário não autenticado"}), 403
+
+    # Log para ver qual usuário está sendo removido
+    if provider == 'google':
+        print(f"Removendo conta do usuário Google com ID: {user_id}")
+        success = remove_google_user_account(user_id, mydb)  # Implementar esta função para remover conta do Google
+    else:
+        password = request.json.get('password')
+        print(f"Removendo conta do usuário local com ID: {user_id}")
+        success = remove_local_user_account(user_id, password, mydb)  # Implementar esta função para remover conta local
+
+    if success:
+        # Limpar a sessão após a remoção da conta
+        session.pop('user_id', None)
+        session.pop('provider', None)
+        print("Sessão limpa após remoção da conta.")
+        return jsonify({"success": True})
+    else:
+        return jsonify({"success": False, "message": "Falha ao remover a conta"}), 400
 
 @app_routes.route('/thank_you')
 # @login_required
@@ -385,8 +413,3 @@ def thank_you():
 def logout():
     session.clear()
     return redirect(url_for('app_routes.index'))
-
-@app_routes.route('/admin')
-# @admin_required
-def admin():
-    return "Admin Page"

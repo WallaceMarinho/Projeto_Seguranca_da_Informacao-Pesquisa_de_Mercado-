@@ -1,6 +1,6 @@
+import bcrypt
 from flask import jsonify, request
 from pymysql.cursors import DictCursor
-from werkzeug.security import check_password_hash
 
 from so_terms_login import get_terms_and_privacy, log_event
 
@@ -75,42 +75,56 @@ def get_user_terms_status(user_id, mydb):
             'message': "Erro ao acessar o banco de dados."
         }
 
-def update_user_optional_terms(user_id, accepted, mydb):
+def update_user_optional_terms(user_id, optional_terms_accepted, mydb):
     try:
         cursor = mydb.cursor()
         cursor.execute("USE surveydb")
-        cursor.execute("UPDATE user_terms_and_privacy_acceptance SET optional_version = %s WHERE user_id = %s", 
-                       (accepted, user_id))
+
+        terms_data = get_terms_and_privacy(mydb)
+        optional_version = None
+
+        if optional_terms_accepted:
+            if terms_data:
+                optional_version = terms_data['optional_version']
+                cursor.execute("UPDATE user_terms_and_privacy_acceptance SET optional_version = %s, accepted_at = CURRENT_TIMESTAMP WHERE user_id = %s", 
+                               (optional_version, user_id))
+            else:
+                return False
+
+        else:
+            cursor.execute("UPDATE user_terms_and_privacy_acceptance SET optional_version = NULL WHERE user_id = %s", 
+                           (user_id,))
+
         mydb.commit()
         result = cursor.rowcount > 0
         if result:
-            terms_info = get_terms_and_privacy(mydb)
-            if terms_info:
-                version_info = f"Versão dos Termos Opcionais: {terms_info['optional_version']}"
-                log_event("Alteração nos termos opcionais", "user_terms_and_privacy_acceptance", user_id, additional_info=version_info)
+            if optional_terms_accepted:
+                log_event("Aceitação dos termos opcionais", "user_terms_and_privacy_acceptance", user_id, f"Versão aceita: {optional_version}")
+            else:
+                log_event("Rejeição dos termos opcionais", "user_terms_and_privacy_acceptance", user_id, "Versão agora: NULL")
 
         return result
     except Exception as e:
         print(f"Erro ao atualizar os termos opcionais: {e}")
         return False
 
-def confirm_account_removal(user_id, password, is_google_user, mydb):
+def remove_local_user_account(user_id, password, mydb):
     with mydb.cursor(cursor=DictCursor) as cursor:
         cursor.execute("USE surveydb")
-
-        if is_google_user:
-            cursor.execute("DELETE FROM user_login WHERE id = %s", (user_id,))
-            mydb.commit()
-            return {"success": True, "message": "Conta excluída com sucesso."}
-
         cursor.execute("SELECT password FROM user_login WHERE id = %s", (user_id,))
         stored_password = cursor.fetchone()
-
-        if stored_password and check_password_hash(stored_password['password'], password):
+        
+        if stored_password and bcrypt.checkpw(password.encode('utf-8'), stored_password['password'].encode('utf-8')):
             cursor.execute("DELETE FROM user_login WHERE id = %s", (user_id,))
             mydb.commit()
-
             log_event("Conta de usuário removida", "user_login", user_id)
-            return {"success": True, "message": "Conta excluída com sucesso."}
-        else:
-            return {"success": False, "message": "Senha incorreta."}
+            return True
+        return False
+
+def remove_google_user_account(user_id, mydb):
+    with mydb.cursor(cursor=DictCursor) as cursor:
+        cursor.execute("USE surveydb")
+        cursor.execute("DELETE FROM user_login WHERE id = %s", (user_id,))
+        mydb.commit()
+        log_event("Conta de usuário Google removida", "user_login", user_id)
+        return True

@@ -84,8 +84,20 @@
             <p id="feedbackMessage"></p>
         </div>
 
+        <div id="userData" data-is-google-user="{{ is_google_user | tojson }}"></div>
+
+        <div class="edit-form" id="removeAccountForm" style="display: none;">
+            <h2>Excluir Conta</h2>
+            <form id="removeAccountDataForm" onsubmit="confirmAccountRemoval(); return false;">
+                <label for="remove_password">Senha:</label>
+                <input type="password" id="remove_password" name="remove_password" maxlength="6" required placeholder="Digite sua senha"><br>
+                
+                <button type="submit">Confirmar Exclusão</button>
+            </form>  
+        </div>
+        
         <div style="margin-top: 40px;">
-            <a href="#" onclick="removeAccount()">Excluir Conta</a>
+            <a href="#" onclick="showRemoveAccountForm()">Excluir Conta</a>
         </div>
 
         <button style="margin-top: 40px;" onclick="logout()">Sair</button>
@@ -321,30 +333,44 @@
             });
         }
 
-        function removeAccount() {
-            if (confirm("Tem certeza que deseja excluir sua conta? Esta ação é irreversível.")) {
-                const isGoogleUser = "{{ is_google_user }}";
-                let password;
-
-                if (!isGoogleUser) {
-                    password = prompt("Por favor, insira sua senha para confirmar a exclusão:");
+        function showRemoveAccountForm() {
+            const isGoogleUser = JSON.parse(document.getElementById("userData").getAttribute("data-is-google-user"));
+            
+            if (isGoogleUser) {
+                const confirmDelete = confirm("Você tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.");
+                if (confirmDelete) {
+                    confirmAccountRemoval(); // Chama a função de remoção sem senha
                 }
-
-                fetch('/remove_account', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ password: password })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    alert(data.message);
-                    if (data.success) {
-                        window.location.href = '/';
-                    }
-                });
+            } else {
+                const removeForm = document.getElementById("removeAccountForm");
+                removeForm.style.display = removeForm.style.display === "none" ? "block" : "none";
             }
+        }
+
+        function confirmAccountRemoval() {
+            const isGoogleUser = JSON.parse(document.getElementById("userData").getAttribute("data-is-google-user"));
+            const password = isGoogleUser ? null : document.getElementById("remove_password").value;
+
+            fetch(`/remove_account`, {
+                method: 'POST',
+                body: JSON.stringify({ password }),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Conta excluída com sucesso.");
+                    sessionStorage.clear();
+                    window.location.href = "/";
+                } else {
+                    alert("Erro ao excluir conta: " + data.message);
+                }
+            })
+            .catch(error => {
+                alert("Erro ao comunicar com o servidor.");
+            });
         }
 
         function logout() {

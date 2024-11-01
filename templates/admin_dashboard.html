@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Administração</title>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        function confirmAction(message) {
+            const senha = prompt(message);
+            if (senha) {
+                return senha;
+            } else {
+                return false;
+            }
+        }
+
+        function handleResetSenha(adminId) {
+            const senha = confirmAction('Confirme reset de senha. SENHA:');
+            if (senha) {
+                window.location.href = `/reset_password/${adminId}?senha=${senha}`;
+            }
+        }
+
+        function handleDeleteAdmin(adminId) {
+            const senha = confirmAction('Confirme remoção. SENHA:');
+            if (senha) {
+                window.location.href = `/delete_admin/${adminId}?senha=${senha}`;
+            }
+        }
+    </script>
+</head>
+<body>
+    <header>
+        <h1>Painel de Administração</h1>
+    </header>
+    <nav>
+        <ul>
+            <li><a href="#gerenciar-conta">Gerenciar Conta</a></li>
+            <li><a href="#editar-politica-termos">Editar Política e Termos</a></li>
+            <li><a href="#gerenciar-usuario">Gerenciar Usuário</a></li>
+            <li><a href="#analisar-pesquisa">Analisar Dados da Pesquisa</a></li>
+            {% if is_default_admin %}
+                <li><a href="#gerenciar-admin">Gerenciar Admin</a></li>
+            {% endif %}
+            <li><a href="/logout">Sair</a></li>
+        </ul>
+    </nav>
+    <main>
+        <section id="gerenciar-conta">
+            <h2>Gerenciar Conta</h2>
+            <form id="account-management" method="POST" action="/update_account">
+                <label for="nome">Nome:</label>
+                <input type="text" id="nome" name="nome" value="{{ user.nome }}" required>
+                
+                <label for="sobrenome">Sobrenome:</label>
+                <input type="text" id="sobrenome" name="sobrenome" value="{{ user.sobrenome }}" required>
+                
+                <label for="telefone">Telefone:</label>
+                <input type="text" id="telefone" name="telefone" value="{{ user.telefone }}" required>
+                
+                <label for="bairro">Bairro:</label>
+                <input type="text" id="bairro" name="bairro" value="{{ user.bairro }}" required>
+                
+                <label for="senha">Senha:</label>
+                <input type="password" id="senha" name="senha" placeholder="Digite uma nova senha">
+                
+                <button type="submit">Salvar Alterações</button>
+            </form>
+        </section>
+
+        <section id="editar-politica-termos">
+            <h2>Editar Política e Termos</h2>
+            <form id="policy-terms-management" method="POST" action="/update_policy_terms">
+                <label for="type">Tipo:</label>
+                <select id="type" name="type" required>
+                    <option value="terms">Termos de Uso</option>
+                    <option value="privacy">Política de Privacidade</option>
+                    <option value="optional">Opcional</option>
+                </select>
+                
+                <label for="content">Conteúdo:</label>
+                <textarea id="content" name="content" rows="5" required></textarea>
+                
+                <button type="submit">Salvar</button>
+            </form>
+        </section>
+
+        <section id="gerenciar-usuario">
+            <h2>Gerenciar Usuário</h2>
+            {% for user in users %}
+                <div class="user-item">
+                    <span>{{ user.nome }} {{ user.sobrenome }}</span>
+                    <a href="/edit_user/{{ user.id }}">Alterar</a>
+                    <form method="POST" action="{{ url_for('admin_routes.delete_user') }}" style="display:inline;">
+                        <input type="hidden" name="user_id" value="{{ user.id }}">
+                        <button type="submit" onclick="return confirm('Tem certeza que deseja excluir?')">Excluir</button>
+                    </form>
+                </div>
+            {% endfor %}
+        </section>
+
+        <section id="analisar-pesquisa">
+            <h2>Analisar Dados da Pesquisa</h2>
+            <p>Nenhum dado para exibir no momento.</p>
+        </section>
+
+        {% if is_default_admin %}
+        <section id="gerenciar-admin">
+            <h2>Gerenciar Admin</h2>
+            <form id="create-admin-form" method="POST" action="/create_admin">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+                
+                <label for="nome">Nome:</label>
+                <input type="text" id="nome" name="nome" required>
+                
+                <label for="sobrenome">Sobrenome:</label>
+                <input type="text" id="sobrenome" name="sobrenome" required>
+                
+                <label for="telefone">Telefone:</label>
+                <input type="text" id="telefone" name="telefone" required>
+                
+                <label for="bairro">Bairro:</label>
+                <input type="text" id="bairro" name="bairro" required>
+                
+                <button type="submit">Adicionar Novo Usuário</button>
+            </form>
+
+            <h3>Lista de Administradores</h3>
+            {% for admin in admins %}
+                <div class="admin-item">
+                    <span>Email: <input type="text" value="{{ admin.email }}" readonly></span>
+                    <span>Nome: {{ admin.nome }} {{ admin.sobrenome }}</span>
+                    <span>Telefone: {{ admin.telefone }}</span>
+                    <span>Bairro: {{ admin.bairro }}</span>
+                    <a href="javascript:void(0)" onclick="handleResetSenha('{{ admin.id }}')">Reset Senha</a>
+                    <a href="javascript:void(0)" onclick="handleDeleteAdmin('{{ admin.id }}')">Remover</a>
+                </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+    </main>
+</body>
+</html>

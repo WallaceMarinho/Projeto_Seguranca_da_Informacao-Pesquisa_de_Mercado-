@@ -85,15 +85,19 @@ def login_user(mydb, form_data):
     if mydb:
         with mydb.cursor(cursor=DictCursor) as cursor:
             cursor.execute("USE surveydb")
-            cursor.execute("SELECT id, password FROM user_login WHERE email = %s", (email,))
+            cursor.execute("SELECT id, password, provider, role, is_default_admin FROM user_login WHERE email = %s", (email,))
             user = cursor.fetchone()
 
             if user:
                 user_id = user['id']
                 hashed_password = user['password']
+                provider = user['provider']
+                role = user['role']
+                is_default_admin = user['is_default_admin']
 
+                # Verifica a senha
                 if bcrypt.checkpw(senha.encode('utf-8'), hashed_password.encode('utf-8')):
-                    cursor.execute("""
+                    cursor.execute(""" 
                         SELECT terms_version, privacy_version FROM user_terms_and_privacy_acceptance 
                         WHERE user_id = %s ORDER BY accepted_at DESC LIMIT 1
                     """, (user_id,))
@@ -116,7 +120,17 @@ def login_user(mydb, form_data):
                         }
 
                     log_event("Login de usuário", "user_login", user_id)
-                    return {"user_id": user_id, "update_required": False}
+
+                    session['user_id'] = user_id
+                    session['provider'] = provider
+                    session['role'] = role
+                    session['is_default_admin'] = is_default_admin
+                    print(f"Provider {session['provider']}, role {session['role']} e is_default_admin {session['is_default_admin']} adicionados ao session.")
+
+                    return {"user_id": user_id,
+                            "role": role,
+                            "is_default_admin": is_default_admin,
+                            "update_required": False}
                 
             return None
 
@@ -214,12 +228,3 @@ def get_user_optional_version(mydb):
 
         result = cursor.fetchone()
         return result['optional_version'] if result else None
-
-def is_admin(user_id, mydb):
-    if mydb:
-        with mydb.cursor() as cursor:
-            cursor.execute("USE surveydb")
-            cursor.execute("SELECT role FROM user_login WHERE id = %s", (user_id))
-            user = cursor.fetchone()
-        return user and user['role'] == 'admin'
-    return False

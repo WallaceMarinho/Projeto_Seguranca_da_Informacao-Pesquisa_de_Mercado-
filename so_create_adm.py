@@ -1,4 +1,5 @@
 import os
+import bcrypt
 
 def create_default_admin(mydb):
     if mydb:
@@ -13,6 +14,8 @@ def create_default_admin(mydb):
                 existing_admin = cursor.fetchone()
 
                 if not existing_admin:
+                    hashed_password = bcrypt.hashpw(os.getenv("ADMIN_PASSWORD").encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
                     cursor.execute(""" 
                         INSERT INTO user_login (
                                    nome,
@@ -29,7 +32,7 @@ def create_default_admin(mydb):
                         os.getenv("ADMIN_LAST_NAME"),
                         os.getenv("ADMIN_PHONE"),
                         os.getenv("ADMIN_EMAIL"),
-                        os.getenv("ADMIN_PASSWORD"),
+                        hashed_password,
                         os.getenv("ADMIN_BAIRRO"),
                         'admin',
                         True
