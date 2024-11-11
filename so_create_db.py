@@ -11,8 +11,8 @@ def connect():
             ssh_config['host'],
             ssh_port=ssh_config['port'],
             ssh_username=ssh_config['username'],
-            #ssh_password=ssh_config['password'],
-            ssh_pkey=ssh_config['private_key'],
+            ssh_password=ssh_config['password'],
+            #ssh_pkey=ssh_config['private_key'],
             remote_bind_address=ssh_config['remote_bind_address']
         )
 

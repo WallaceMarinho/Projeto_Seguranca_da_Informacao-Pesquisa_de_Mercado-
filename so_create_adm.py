@@ -13,9 +13,31 @@ def create_default_admin(mydb):
                 """, (os.getenv("ADMIN_EMAIL"),))
                 existing_admin = cursor.fetchone()
 
-                if not existing_admin:
-                    hashed_password = bcrypt.hashpw(os.getenv("ADMIN_PASSWORD").encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                reset_admin = os.getenv("RESET_ADM", "FALSE").upper() == "TRUE"
 
+                if existing_admin and reset_admin:
+                    hashed_password = bcrypt.hashpw(os.getenv("ADMIN_PASSWORD").encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                    cursor.execute(""" 
+                        UPDATE user_login SET
+                            nome = %s,
+                            sobrenome = %s,
+                            telefone = %s,
+                            password = %s,
+                            bairro = %s
+                        WHERE email = %s AND role = 'admin' AND is_default_admin = TRUE
+                    """, (
+                        os.getenv("ADMIN_NAME"),
+                        os.getenv("ADMIN_LAST_NAME"),
+                        os.getenv("ADMIN_PHONE"),
+                        hashed_password,
+                        os.getenv("ADMIN_BAIRRO"),
+                        os.getenv("ADMIN_EMAIL")
+                    ))
+                    mydb.commit()
+                    print("Admin padrão atualizado com os novos dados do .env.")
+
+                elif not existing_admin:
+                    hashed_password = bcrypt.hashpw(os.getenv("ADMIN_PASSWORD").encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                     cursor.execute(""" 
                         INSERT INTO user_login (
                                    nome,
@@ -38,8 +60,8 @@ def create_default_admin(mydb):
                         True
                     ))
                     mydb.commit()
-
                     admin_id = cursor.lastrowid
+                    print("Admin padrão criado com sucesso.")
 
                     cursor.execute(""" 
                         SELECT version FROM terms_and_privacy_policy 
@@ -55,7 +77,6 @@ def create_default_admin(mydb):
                             WHERE is_current = TRUE
                         """)
                         mydb.commit()
-
                         cursor.execute(""" 
                             SELECT MAX(CAST(version AS UNSIGNED)) FROM terms_and_privacy_policy
                         """)
@@ -84,10 +105,10 @@ def create_default_admin(mydb):
                     """, (admin_id, version, version, version))
                     mydb.commit()
 
-                    print(f"Admin padrão criado e termos/políticas (versão {version}) criados com sucesso.")
+                    print(f"Termos/políticas (versão {version}) criados com sucesso.")
                 else:
-                    print("O admin padrão já existe.")
+                    print("O admin padrão já existe e 'RESET_ADM' está desativado.")
         except Exception as e:
-            print(f"Erro ao criar admin padrão: {e}")
+            print(f"Erro ao criar ou atualizar admin padrão: {e}")
     else:
         print("Erro ao conectar ao banco de dados.")

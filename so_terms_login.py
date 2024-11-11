@@ -97,6 +97,20 @@ def login_user(mydb, form_data):
 
                 # Verifica a senha
                 if bcrypt.checkpw(senha.encode('utf-8'), hashed_password.encode('utf-8')):
+                    if role == 'admin':
+                        # Login de admin
+                        session['user_id'] = user_id
+                        session['provider'] = provider
+                        session['role'] = role
+                        session['is_default_admin'] = is_default_admin
+                        return {
+                            "user_id": user_id,
+                            "role": role,
+                            "is_default_admin": is_default_admin,
+                            "update_required": False
+                        }
+
+                    # Verifica termos para usuários comuns
                     cursor.execute(""" 
                         SELECT terms_version, privacy_version FROM user_terms_and_privacy_acceptance 
                         WHERE user_id = %s ORDER BY accepted_at DESC LIMIT 1
@@ -116,22 +130,23 @@ def login_user(mydb, form_data):
                             "user_id": user_id,
                             "terms_required": terms_data['terms'],
                             "privacy_required": terms_data['privacy'],
-                            "update_required": True
+                            "update_required": True,
+                            "role": role,
+                            "is_default_admin": is_default_admin
                         }
 
-                    log_event("Login de usuário", "user_login", user_id)
-
+                    # Se não há atualização de termos, armazena na sessão
                     session['user_id'] = user_id
                     session['provider'] = provider
                     session['role'] = role
                     session['is_default_admin'] = is_default_admin
-                    print(f"Provider {session['provider']}, role {session['role']} e is_default_admin {session['is_default_admin']} adicionados ao session.")
+                    return {
+                        "user_id": user_id,
+                        "role": role,
+                        "is_default_admin": is_default_admin,
+                        "update_required": False
+                    }
 
-                    return {"user_id": user_id,
-                            "role": role,
-                            "is_default_admin": is_default_admin,
-                            "update_required": False}
-                
             return None
 
 def get_terms_and_privacy(mydb):
@@ -172,8 +187,9 @@ def verify_terms_version(mydb, user_id):
 
     with mydb.cursor(cursor=DictCursor) as cursor:
         cursor.execute(""" 
-            SELECT terms_version, privacy_version, optional_version FROM user_terms_and_privacy_acceptance 
-            WHERE user_id = %s ORDER BY accepted_at DESC LIMIT 1 
+            SELECT terms_version, privacy_version, optional_version 
+            FROM user_terms_and_privacy_acceptance 
+            WHERE user_id = %s 
         """, (user_id,))
         user_terms = cursor.fetchone()
 
@@ -205,13 +221,30 @@ def verify_terms_version(mydb, user_id):
 def update_user_terms_acceptance(mydb, user_id, terms_version, privacy_version):
     with mydb.cursor() as cursor:
         cursor.execute("USE surveydb")
+        
+        # Verifica se já existe um registro para o user_id
         cursor.execute("""
-            INSERT INTO user_terms_and_privacy_acceptance (user_id, terms_version, privacy_version, accepted_at)
-            VALUES (%s, %s, %s, NOW())
-        """, (user_id, terms_version, privacy_version))
+            SELECT user_id FROM user_terms_and_privacy_acceptance WHERE user_id = %s
+        """, (user_id,))
+        
+        if cursor.fetchone():
+            # Atualiza as versões se o registro já existir
+            cursor.execute("""
+                UPDATE user_terms_and_privacy_acceptance 
+                SET terms_version = %s, privacy_version = %s, accepted_at = NOW()
+                WHERE user_id = %s
+            """, (terms_version, privacy_version, user_id))
+        else:
+            # Insere um novo registro se não existir
+            cursor.execute("""
+                INSERT INTO user_terms_and_privacy_acceptance (user_id, terms_version, privacy_version, accepted_at)
+                VALUES (%s, %s, %s, NOW())
+            """, (user_id, terms_version, privacy_version))
+        
         mydb.commit()
+        
         log_event(f"Aceitação dos Termos - Versão {terms_version}, Política de Privacidade - Versão {privacy_version}",
-            "user_terms_and_privacy_acceptance", user_id)
+                  "user_terms_and_privacy_acceptance", user_id)
 
 def get_user_optional_version(mydb):
     user_id = session.get('user_id')

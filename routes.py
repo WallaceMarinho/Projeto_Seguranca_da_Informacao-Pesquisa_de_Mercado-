@@ -1,9 +1,9 @@
 from flask import Blueprint, flash, render_template, request, redirect, session, url_for, jsonify
 from middlewares import admin_required, login_required, registration_required, terms_accepted_required
 from so_survey import read_survey_responses, submit_survey, survey, update_survey_responses, questions, response_options
-from so_terms_login import get_user_optional_version, register_user, login_user, get_terms_and_privacy, bairros, update_user_terms_acceptance, verify_terms_version
+from so_terms_login import get_user_optional_version, log_event, register_user, login_user, get_terms_and_privacy, bairros, update_user_terms_acceptance, verify_terms_version
 from db_connection import mydb
-from so_user import edit_user_data, get_user_terms_status, remove_google_user_account, remove_local_user_account, update_user_optional_terms, view_user_data
+from so_user import edit_user_data, get_user_terms_status, remove_google_user_account, remove_local_user_account, reset_user_optional_terms, update_user_optional_terms, view_user_data
 from config import google, userinfo
 from pymysql.cursors import DictCursor
 
@@ -46,7 +46,7 @@ def google_callback():
             terms_status = verify_terms_version(mydb, user_id['id'])
 
             if not terms_status['terms_ok'] or not terms_status['privacy_ok']:
-                return redirect(url_for('app_routes.upd_terms_route', alert='updated_terms'))
+                return redirect(url_for('app_routes.new_terms_route', alert='updated_terms'))
 
             return redirect(url_for('app_routes.survey_route', user_id=user_id['id']))
 
@@ -151,14 +151,19 @@ def login():
             print(is_default_admin)
             session.pop('registering', None)
 
-            terms_status = verify_terms_version(mydb, user_id)
-            if not terms_status['terms_ok'] or not terms_status['privacy_ok']:
-                return redirect(url_for('app_routes.upd_terms_route', alert='updated_terms'))
+            # Verificar aceitação dos termos apenas se o usuário não for admin
+            if user_role == 'user':
+                terms_status = verify_terms_version(mydb, user_id)
+                if not terms_status['terms_ok'] or not terms_status['privacy_ok']:
+                    return redirect(url_for('app_routes.new_terms_route', alert='updated_terms'))
 
+            # Redirecionar o admin ao dashboard diretamente, sem verificação de termos
             if user_role == 'admin' and is_default_admin:
                 return redirect(url_for('admin_routes.admin_dashboard'))
 
+            # Redirecionar o usuário comum para a rota survey_route
             return redirect(url_for('app_routes.survey_route', user_id=user_id))
+
         error_message = "Credenciais inválidas, verifique email e senha ou cadastre-se."
     return render_template('login.html', error_message=error_message)
 
@@ -183,12 +188,48 @@ def check_optional_terms_update():
 
     if terms_data:
         current_optional_version = terms_data['optional_version']
-        user_optional_version = get_user_optional_version(mydb) 
+        user_optional_version = get_user_optional_version(mydb)
 
+        # Verifica se a versão do termo aceito pelo usuário é anterior à versão atual
         if user_optional_version is not None and user_optional_version < current_optional_version:
+            # Reseta o consentimento do termo opcional
+            reset_user_optional_terms(session.get('user_id'), mydb)
             return jsonify(updated=True, was_accepted=True)
 
     return jsonify(updated=False)
+
+@app_routes.route('/accept-optional-terms', methods=['POST'])
+def accept_optional_terms():
+    user_id = session.get('user_id')
+    optional_version = get_terms_and_privacy(mydb)['optional_version']
+    update_user_optional_terms(user_id, optional_version, mydb)
+    log_event("Aceitação dos Termos Opcionais", "user_terms_and_privacy_acceptance", user_id)
+    return jsonify({"success": True})
+
+@app_routes.route('/new-terms', methods=['GET', 'POST'])
+def new_terms_route():
+    user_id = session.get('user_id')
+    if request.method == 'POST':
+        terms_accepted = request.form.get('terms')
+        privacy_accepted = request.form.get('privacy')
+
+        if user_id and terms_accepted and privacy_accepted:
+            versions = verify_terms_version(mydb, user_id)
+
+            update_user_terms_acceptance(mydb, user_id, versions['current_terms_version'], versions['current_privacy_version'])
+            return redirect(url_for('app_routes.survey_route'))
+
+        return redirect(url_for('app_routes.login'))
+
+    terms_status = verify_terms_version(mydb, user_id)
+    terms_data = get_terms_and_privacy(mydb)
+
+    return render_template('upd_terms.html',
+                           terms_version=terms_data['terms_version'],
+                           privacy_version=terms_data['privacy_version'],
+                           terms_ok=terms_status['terms_ok'],
+                           privacy_ok=terms_status['privacy_ok'],
+                           terms_message="É necessário aceitar novamente para usar o site.")
 
 @app_routes.route('/terms', methods=['GET'])
 def terms():
@@ -199,22 +240,28 @@ def terms():
 def mandatory_terms():
     terms_data = get_terms_and_privacy(mydb)
     mandatory_terms_text = terms_data.get('terms')
+    mandatory_terms_version = terms_data.get('terms_version')
     
-    return render_template('terms_popup.html', title="Termos Obrigatórios", content=mandatory_terms_text)
+    return render_template('terms_popup.html', title="Termos Obrigatórios",
+                           content=mandatory_terms_text, version=mandatory_terms_version)
 
 @app_routes.route('/terms/optional')
 def optional_terms():
     terms_data = get_terms_and_privacy(mydb)
     optional_terms_text = terms_data.get('optional')
+    optional_terms_version = terms_data.get('optional_version')
     
-    return render_template('terms_popup.html', title="Termos Opcionais", content=optional_terms_text)
+    return render_template('terms_popup.html', title="Termos Opcionais",
+                           content=optional_terms_text, version=optional_terms_version)
 
 @app_routes.route('/terms/privacy')
 def privacy_policy():
     terms_data = get_terms_and_privacy(mydb)
     privacy_policy_text = terms_data.get('privacy')
+    privacy_policy_version = terms_data.get('privacy_version')
     
-    return render_template('terms_popup.html', title="Política de Privacidade", content=privacy_policy_text)
+    return render_template('terms_popup.html', title="Política de Privacidade",
+                           content=privacy_policy_text, version=privacy_policy_version)
 
 @app_routes.route('/new_user')
 def new_user():

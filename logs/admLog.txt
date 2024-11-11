@@ -1,0 +1,18 @@
+2024-11-03 13:30:07.744472 | Evento: Tentativa de atualização de conta | Tentativa falha de salvar alterações
+2024-11-03 13:30:37.790705 | Evento: Tentativa de atualização de conta | Tentativa falha de salvar alterações
+2024-11-03 13:50:33.073743 | Evento: Atualização de conta bem-sucedida | Dados alterados: ImmutableMultiDict([('nome', 'Administrador'), ('sobrenome', 'System'), ('telefone', '11111111111'), ('bairro', 'NENHUM'), ('senha', ''), ('senha_confirm', 'adm123'), ('senha_confirm', 'adm123')])
+2024-11-03 13:58:24.915225 | Evento: Atualização de conta bem-sucedida | Dados alterados: ImmutableMultiDict([('nome', 'Administrador'), ('sobrenome', 'System'), ('telefone', '00000000000'), ('bairro', 'NENHUM'), ('senha', ''), ('senha_confirm', 'adm123'), ('senha_confirm', 'adm123')])
+2024-11-03 14:09:50.949268 | Evento: Tentativa de atualização de conta | Tentativa falha de salvar alterações
+2024-11-03 14:10:09.817851 | Evento: Tentativa de atualização de conta | Tentativa falha de salvar alterações
+2024-11-03 14:17:26.040045 | Evento: Atualização de conta bem-sucedida | Dados alterados: ImmutableMultiDict([('nome', 'Admin'), ('sobrenome', 'System'), ('telefone', '00000000000'), ('bairro', 'NENHUM'), ('senha', ''), ('senha_confirm', 'adm123'), ('password_confirmation', 'adm123')])
+2024-11-03 16:30:59.895314 | Evento: Atualização de conta bem-sucedida | Dados alterados: ImmutableMultiDict([('nome', 'Admin'), ('sobrenome', 'System'), ('telefone', '12000000000'), ('bairro', 'NENHUM'), ('senha', ''), ('senha_confirm', 'adm123'), ('password_confirmation', 'adm123')])
+2024-11-03 20:34:41.175501 | Admin ID: 1 | Evento: Tentativa falha de atualização | Tentativa falha de salvar alterações
+2024-11-03 20:34:56.034762 | Admin ID: 1 | Evento: Tentativa falha de atualização | Tentativa falha de salvar alterações
+2024-11-03 20:35:20.311060 | Admin ID: 1 | Evento: Atualização de Termos/Política | Dados alterados: Ainda não existe uma versão de termo obrigatório no banco de dados.
+2024-11-03 20:48:59.769849 | Admin ID: 1 | Evento: Tentativa falha de atualização | Tentativa falha de salvar alterações
+2024-11-03 20:49:09.573817 | Admin ID: 1 | Evento: Tentativa falha de atualização | Tentativa falha de salvar alterações
+2024-11-03 21:03:21.858550 | Admin ID: 1 | Evento: Tentativa falha de atualização | Tentativa falha de salvar alterações
+2024-11-03 21:10:10.929952 | Admin ID: 1 | Evento: Tentativa falha de atualização | Tentativa falha de salvar alterações
+2024-11-03 21:10:28.152183 | Admin ID: 1 | Evento: Atualização de Termos/Política | Dados alterados: Ainda não existe uma versão de termo obrigatório no banco de dados.
+2024-11-03 21:19:41.258381 | Admin ID: 1 | Evento: Tentativa falha de atualização | Tentativa falha de salvar alterações
+2024-11-03 21:19:54.343742 | Admin ID: 1 | Evento: Atualização de Termos/Política | Dados alterados: Ainda não existe uma versão de termo obrigatório no banco de dados.
