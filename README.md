@@ -41,4 +41,4 @@ Para começar, acesse o serviço **EC2** da AWS com sua conta. Em seguida, crie 
 
 - **Configurando os Grupos de Segurança:** Agora, acesse a seção **Security Groups** e edite o grupo de segurança associado à sua instância. Libere a **porta 22** para permitir a conexão SSH, o que será necessário para acessar a instância via terminal **CMD** do Windows ou para estabelecer a comunicação entre as suas VMs locais e a instância na AWS. Além da porta 22, também será necessário liberar outras portas que são essenciais para o funcionamento do projeto, conforme a imagem abaixo:
 
-![Topologia de Redes](docs_img/topologia_redes.PNG)
+![Portas AWS](docs_img/portas_aws.PNG)
