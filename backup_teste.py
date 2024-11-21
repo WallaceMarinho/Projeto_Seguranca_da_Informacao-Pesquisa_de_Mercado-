@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 import os
 import subprocess
 
+#xemplo
 # Carrega as variáveis de ambiente
 load_dotenv()
 

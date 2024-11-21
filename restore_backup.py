@@ -3,6 +3,7 @@ import os
 import subprocess
 
 # Carrega as variáveis de ambiente
+#exemplo
 load_dotenv()
 
 def restore_backup():
