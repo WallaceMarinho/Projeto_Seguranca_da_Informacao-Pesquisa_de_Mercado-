@@ -15,8 +15,6 @@ __pycache__/
 *client_secret*
 
 # Folders
-venv
-Lib\site-packages
-Scripts
-pyvenv.cfg
+venv/
+
 
