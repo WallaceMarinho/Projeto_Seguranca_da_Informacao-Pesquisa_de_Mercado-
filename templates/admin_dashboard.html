@@ -4,109 +4,433 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel de Administração</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .edit-section { display: none; }
+        .visible { display: block; }
+        .error { color: red; font-size: 0.9em; }
+        .success { color: green; font-size: 0.9em; } /* Estilo opcional para mensagens de sucesso */
+    </style>    
     <script>
-        function confirmAction(message) {
-            const senha = prompt(message);
-            if (senha) {
-                return senha;
+
+        let currentVisibleSection = null;
+
+        function toggleSection(sectionId) {
+            const sections = document.querySelectorAll('.edit-section');
+
+            if (currentVisibleSection === sectionId) {
+                document.getElementById(sectionId).style.display = 'none';
+                currentVisibleSection = null;
             } else {
-                return false;
+                sections.forEach(section => {
+                    section.style.display = 'none';
+                });
+                const targetSection = document.getElementById(sectionId);
+                targetSection.style.display = 'block';
+                currentVisibleSection = sectionId;
             }
         }
 
-        function handleResetSenha(adminId) {
-            const senha = confirmAction('Confirme reset de senha. SENHA:');
-            if (senha) {
-                window.location.href = `/reset_password/${adminId}?senha=${senha}`;
+        function loadAccountData() {
+            fetch('/get_user_data?user_id={{ session.get("user_id") }}')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const { nome, sobrenome, telefone, bairro } = data.user;
+                        document.getElementById('nome').value = nome || '';
+                        document.getElementById('sobrenome').value = sobrenome || '';
+                        document.getElementById('telefone').value = telefone || '';
+                        document.getElementById('bairro').value = bairro || '';
+                    } else {
+                        alert("Erro ao carregar os dados do usuário.");
+                    }
+                })
+                .catch(error => console.error("Erro na requisição:", error));
+        }
+
+        function showPasswordConfirmation() {
+            // Exibe o campo de confirmação de senha e o botão Confirmar
+            const senhaConfirmInput = document.getElementById('senha_confirm_account');
+            const confirmButton = document.getElementById('confirm-button');
+            senhaConfirmInput.style.display = 'inline';
+            confirmButton.style.display = 'inline';
+            senhaConfirmInput.focus();
+        }
+
+        function submitAccountData() {
+            const formData = new FormData(document.getElementById('account-management'));
+            const feedbackElement = document.getElementById('feedback');
+
+            if (!formData.get('nome') || !formData.get('sobrenome') || !formData.get('telefone') || !formData.get('bairro')) {
+                feedbackElement.innerHTML = '<span class="error">Todos os campos devem ser preenchidos.</span>';
+                return;
             }
+
+            const senhaConfirmInput = document.getElementById('senha_confirm_account');
+            if (senhaConfirmInput.style.display === 'inline' && !senhaConfirmInput.value) {
+                feedbackElement.innerHTML = '<span class="error">Campo de confirmação de senha não pode estar vazio.</span>';
+                senhaConfirmInput.focus();
+                return;
+            }
+
+            if (senhaConfirmInput.style.display === 'inline') {
+                formData.append('password_confirmation', senhaConfirmInput.value);
+            }
+
+            fetch('/admin/update_account', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    feedbackElement.innerHTML = '<span style="color: green;">' + data.message + '</span>';
+                } else {
+                    feedbackElement.innerHTML = '<span class="error">' + data.message + '</span>';
+                }
+            })
+            .catch(error => {
+                console.error("Erro na requisição:", error);
+                feedbackElement.innerHTML = '<span class="error">Erro na requisição. Tente novamente.</span>';
+            });
+        }
+
+        function onManageAccountClick() {
+            loadAccountData(); // Carrega dados apenas ao clicar
+            toggleSection('gerenciar-conta');
+        }
+
+        function loadPolicyTerms() {
+            const type = document.getElementById('type').value;
+            fetch(`/admin/get_policy_terms?type=${type}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('content').value = data.content || '';
+                        document.getElementById('version-label').innerText = `Versão Atual: ${data.version || '0000'}`;
+                    } else {
+                        alert(data.message || "Erro ao carregar os termos.");
+                    }
+                })
+                .catch(error => console.error("Erro na requisição:", error));
+        }
+
+        function onEditPolicyTermsClick() {
+            toggleSection('editar-politica-termos');
+            loadPolicyTerms(); // Carrega os termos ao clicar na guia
+        }
+
+        function savePolicyTerms(event) {
+            event.preventDefault(); // Impede o envio padrão do formulário
+            document.getElementById('password-section').style.display = 'block'; // Exibe o campo de senha
+        }
+
+        function confirmSave(event) {
+            event.preventDefault();
+            const password = document.getElementById('admin-password').value;
+            const type = document.getElementById('type').value;
+            const content = document.getElementById('content').value;
+
+            if (!password) {
+                document.getElementById('message-container').innerHTML = '<ul class="flash-messages"><li class="error">Digite uma senha.</li></ul>';
+                return;
+            }
+
+            fetch('/admin/update_policy_terms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type, content, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Exibe a mensagem na área de mensagens flash existente no HTML
+                const messageClass = data.success ? 'success' : 'error';
+                document.getElementById('message-container').innerHTML = `<ul class="flash-messages"><li class="${messageClass}">${data.message}</li></ul>`;
+
+                // Limpa e oculta o campo de senha após a operação
+                document.getElementById('admin-password').value = '';
+                document.getElementById('password-section').style.display = 'none';
+            })
+            .catch(error => {
+                console.error("Erro na requisição:", error);
+                document.getElementById('message-container').innerHTML = '<ul class="flash-messages"><li class="error">Erro na requisição. Tente novamente mais tarde.</li></ul>';
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            // Listener para carregar política e termos ao mudar o tipo
+            document.getElementById('type').addEventListener('change', loadPolicyTerms);
+            
+            // Listener para garantir que o campo de telefone aceite apenas números e tenha no máximo 11 caracteres
+            const telefoneInput = document.getElementById('telefone');
+            telefoneInput.addEventListener('input', function () {
+                this.value = this.value.replace(/\D/g, '').slice(0, 11); // Permite apenas números e limita a 11 caracteres
+            });
+
+            // Listener para o botão de salvar
+            document.getElementById('policy-terms-management').addEventListener('submit', savePolicyTerms);
+        });
+
+        function loadManageUsers() {
+            fetch('/admin/get_users')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const userListDiv = document.getElementById('user-list');
+                    userListDiv.innerHTML = ''; // Limpa a lista atual
+
+                    const users = data.users;
+                    users.forEach(user => {
+                        const userItem = document.createElement('div');
+                        userItem.className = 'user-item';
+                        userItem.innerHTML = `
+                            <form method="POST" action="/admin/update_user_email" style="display:inline;" 
+                                id="update_form_${user.id}">
+                                <input type="hidden" name="user_id" value="${user.id}">
+                                <input type="text" name="email" value="${user.email}" required>
+                                <input type="password" id="senha_confirm_${user.id}" name="senha_confirm" placeholder="Digite sua senha" required style="display:none;">
+                                <button type="button" onclick="toggleSenhaInput('${user.id}', 'update')">Salvar</button>
+                            </form>
+                            <form id="delete_user_form_${user.id}" method="POST" action="/admin/delete_user" style="display:inline;" onsubmit="return handleDeleteUser('${user.id}', this);">
+                                <input type="hidden" name="user_id" value="${user.id}">
+                                <input type="password" id="senha_confirm_${user.id}_delete" name="senha_confirm" placeholder="Digite sua senha" required style="display:none;">
+                                <button type="button" onclick="toggleSenhaInput('${user.id}', 'delete')">Excluir</button>
+                            </form>
+                            <span>${user.nome} ${user.sobrenome}</span>
+                        `;
+                        userListDiv.appendChild(userItem);
+                    });
+                })
+                .catch(error => console.error('Error loading users:', error));
+        }
+
+        let allUsers = []; // Armazena todos os usuários carregados
+
+        function loadManageUsers() {
+            fetch('/admin/get_users')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    allUsers = data.users; // Armazena os usuários para filtragem
+                    displayUsers(allUsers); // Chama função para exibir usuários
+                })
+                .catch(error => console.error('Error loading users:', error));
+        }
+
+        function displayUsers(users) {
+            const userListDiv = document.getElementById('user-list');
+            userListDiv.innerHTML = ''; // Limpa a lista atual
+
+            users.forEach(user => {
+                const userItem = document.createElement('div');
+                userItem.className = 'user-item';
+                userItem.innerHTML = `
+                    <form method="POST" action="/admin/update_user_email" style="display:inline;" 
+                        id="update_form_${user.id}">
+                        <input type="hidden" name="user_id" value="${user.id}">
+                        <input type="text" name="email" value="${user.email}" required>
+                        <input type="password" id="senha_confirm_${user.id}" name="senha_confirm" placeholder="Digite sua senha" required style="display:none;">
+                        <button type="button" onclick="toggleSenhaInput('${user.id}', 'update')">Salvar</button>
+                    </form>
+                    <form id="delete_user_form_${user.id}" method="POST" action="/admin/delete_user" style="display:inline;" onsubmit="return handleDeleteUser('${user.id}', this);">
+                        <input type="hidden" name="user_id" value="${user.id}">
+                        <input type="password" id="senha_confirm_${user.id}_delete" name="senha_confirm" placeholder="Digite sua senha" required style="display:none;">
+                        <button type="button" onclick="toggleSenhaInput('${user.id}', 'delete')">Excluir</button>
+                    </form>
+                    <span>${user.nome} ${user.sobrenome}</span>
+                `;
+                userListDiv.appendChild(userItem);
+            });
+        }
+
+        function normalizeString(str) {
+            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        }
+
+        function filterUsers() {
+            const searchValue = normalizeString(document.getElementById('user-search').value.trim());
+
+            // Filtra os usuários verificando combinações de nome, sobrenome e email
+            const filteredUsers = allUsers.filter(user => {
+                const fullName = normalizeString(`${user.nome} ${user.sobrenome}`);
+                const email = normalizeString(user.email);
+
+                // Condições para verificar o nome completo e as possíveis combinações
+                return (
+                    fullName.includes(searchValue) ||
+                    email.includes(searchValue) ||
+                    normalizeString(`${user.nome}${user.sobrenome}`).includes(searchValue) ||
+                    normalizeString(`${user.nome}_${user.sobrenome}`).includes(searchValue) ||
+                    normalizeString(`${user.nome}-${user.sobrenome}`).includes(searchValue) ||
+                    normalizeString(`${user.nome}.${user.sobrenome}`).includes(searchValue) ||
+                    normalizeString(`${user.sobrenome}${user.nome}`).includes(searchValue) ||
+                    normalizeString(`${user.sobrenome}_${user.nome}`).includes(searchValue) ||
+                    normalizeString(`${user.sobrenome}-${user.nome}`).includes(searchValue) ||
+                    normalizeString(`${user.sobrenome}.${user.nome}`).includes(searchValue)
+                );
+            });
+
+            displayUsers(filteredUsers); // Atualiza a exibição com os usuários filtrados
+        }
+
+        function onManageUsersClick() {
+            toggleSection('gerenciar-usuario');
+            loadManageUsers(); // Carrega os usuários ao clicar na guia
+        }
+
+        function toggleSenhaInput(userId, action) {
+            const senhaInput = action === 'update' ? document.getElementById(`senha_confirm_${userId}`) : document.getElementById(`senha_confirm_${userId}_delete`);
+            senhaInput.style.display = senhaInput.style.display === 'none' ? 'inline' : 'none'; // Alterna a exibição do campo de senha
+
+            // Se a senha estiver visível, habilita o envio do formulário
+            if (senhaInput.style.display === 'inline') {
+                senhaInput.focus();
+            } else {
+                const form = action === 'update' ? document.getElementById(`update_form_${userId}`) : senhaInput.closest('form');
+                const senha = senhaInput.value;
+                if (!senha) {
+                    alert("Campo de senha não pode estar vazio.");
+                    return false;
+                }
+
+                // Adiciona a senha confirmada ao formulário antes de enviá-lo
+                const senhaHiddenInput = document.createElement('input');
+                senhaHiddenInput.type = 'hidden';
+                senhaHiddenInput.name = 'senha_confirm';
+                senhaHiddenInput.value = senha;
+                form.appendChild(senhaHiddenInput);
+
+                // Envia o formulário
+                form.submit();
+            }
+        }
+
+        function confirmAndSubmit() {
+            const senhaConfirmacao = document.getElementById('password_confirmation').value;
+            
+            // Verifica se o campo de confirmação de senha está preenchido
+            if (!senhaConfirmacao) {
+                alert("Por favor, confirme sua senha.");
+                return;
+            }
+
+            // Realiza a requisição para atualização dos dados
+            submitAccountData();
         }
 
         function handleDeleteAdmin(adminId) {
-            const senha = confirmAction('Confirme remoção. SENHA:');
+            const senha = confirmAndSubmit('Confirme remoção. SENHA:');
             if (senha) {
                 window.location.href = `/delete_admin/${adminId}?senha=${senha}`;
             }
         }
+
     </script>
 </head>
 <body>
-    <header>
-        <h1>Painel de Administração</h1>
-    </header>
+    <header><h1>Painel de Administração</h1></header>
     <nav>
         <ul>
-            <li><a href="#gerenciar-conta">Gerenciar Conta</a></li>
-            <li><a href="#editar-politica-termos">Editar Política e Termos</a></li>
-            <li><a href="#gerenciar-usuario">Gerenciar Usuário</a></li>
-            <li><a href="#analisar-pesquisa">Analisar Dados da Pesquisa</a></li>
+            <li><a href="#" onclick="onManageAccountClick()">Gerenciar Conta</a></li>
+            <li><a href="#" onclick="onEditPolicyTermsClick()">Editar Política e Termos</a></li>
+            <li><a href="#" onclick="onManageUsersClick()">Gerenciar Usuário</a></li>
+            <li><a href="#" onclick="toggleSection('analisar-pesquisa')">Analisar Dados da Pesquisa</a></li>
             {% if is_default_admin %}
-                <li><a href="#gerenciar-admin">Gerenciar Admin</a></li>
+                <li><a href="#" onclick="toggleSection('gerenciar-admin')">Gerenciar Admin</a></li>
             {% endif %}
-            <li><a href="/logout">Sair</a></li>
+            <br>
+            <form action="/logout" method="POST" style="display: inline;">
+                <button type="submit">Sair</button>
+            </form>
         </ul>
     </nav>
+
+    <div id="message-container">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class="flash-messages">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+    </div>
+
     <main>
-        <section id="gerenciar-conta">
+        <section id="gerenciar-conta" class="edit-section">
             <h2>Gerenciar Conta</h2>
-            <form id="account-management" method="POST" action="/update_account">
+            <form id="account-management" method="POST" action="/admin/update_account">
                 <label for="nome">Nome:</label>
-                <input type="text" id="nome" name="nome" value="{{ user.nome }}" required>
-                
+                <input type="text" id="nome" name="nome" required><br>
+            
                 <label for="sobrenome">Sobrenome:</label>
-                <input type="text" id="sobrenome" name="sobrenome" value="{{ user.sobrenome }}" required>
-                
+                <input type="text" id="sobrenome" name="sobrenome" required><br>
+            
                 <label for="telefone">Telefone:</label>
-                <input type="text" id="telefone" name="telefone" value="{{ user.telefone }}" required>
-                
+                <input type="text" id="telefone" name="telefone" maxlength="11" required><br>
+            
                 <label for="bairro">Bairro:</label>
-                <input type="text" id="bairro" name="bairro" value="{{ user.bairro }}" required>
-                
+                <input type="text" id="bairro" name="bairro" required><br>
+            
                 <label for="senha">Senha:</label>
-                <input type="password" id="senha" name="senha" placeholder="Digite uma nova senha">
-                
-                <button type="submit">Salvar Alterações</button>
+                <input type="password" id="senha" name="senha" placeholder="Digite uma nova senha"><br>
+            
+                <label for="senha_confirm_account" id="password-confirmation-label" style="display: none;">Confirme a senha:</label>
+                <input type="password" id="senha_confirm_account" name="senha_confirm" style="display: none;" placeholder="Confirme a senha"><br>
+            
+                <button type="button" onclick="showPasswordConfirmation()">Salvar Alterações</button>
+                <button type="button" id="confirm-button" onclick="submitAccountData()" style="display: none;">Confirmar</button>
             </form>
+            <div id="feedback"></div> <!-- Elemento para mensagens de feedback -->
         </section>
 
-        <section id="editar-politica-termos">
+        <section id="editar-politica-termos" class="edit-section">
             <h2>Editar Política e Termos</h2>
-            <form id="policy-terms-management" method="POST" action="/update_policy_terms">
+            <form id="policy-terms-management" method="POST"> 
                 <label for="type">Tipo:</label>
-                <select id="type" name="type" required>
+                <select id="type" name="type" required onchange="loadPolicyTerms()">
                     <option value="terms">Termos de Uso</option>
                     <option value="privacy">Política de Privacidade</option>
                     <option value="optional">Opcional</option>
                 </select>
                 
+                <div id="version-label" style="float:right; margin-bottom: 10px;"></div>
+                
                 <label for="content">Conteúdo:</label>
                 <textarea id="content" name="content" rows="5" required></textarea>
-                
-                <button type="submit">Salvar</button>
+            
+                <button type="button" onclick="savePolicyTerms(event)">Salvar</button>
+                <div id="password-section" style="display: none;">
+                    <label for="admin-password">Digite sua senha para confirmar:</label>
+                    <input type="password" id="admin-password" name="admin-password" required>
+                    <button type="button" onclick="confirmSave(event)">Confirmar</button>
+                    <div id="flash-messages" class="flash-messages"></div> <!-- Para mensagens de flash -->
+                </div>
             </form>
         </section>
 
-        <section id="gerenciar-usuario">
+        <section id="gerenciar-usuario" class="edit-section" style="display: none;">
             <h2>Gerenciar Usuário</h2>
-            {% for user in users %}
-                <div class="user-item">
-                    <span>{{ user.nome }} {{ user.sobrenome }}</span>
-                    <a href="/edit_user/{{ user.id }}">Alterar</a>
-                    <form method="POST" action="{{ url_for('admin_routes.delete_user') }}" style="display:inline;">
-                        <input type="hidden" name="user_id" value="{{ user.id }}">
-                        <button type="submit" onclick="return confirm('Tem certeza que deseja excluir?')">Excluir</button>
-                    </form>
-                </div>
-            {% endfor %}
+            <input type="text" id="user-search" placeholder="Buscar por nome, sobrenome ou e-mail" oninput="filterUsers()">
+            <div id="user-list"></div> <!-- Área onde os usuários serão carregados -->
         </section>
 
-        <section id="analisar-pesquisa">
+        <section id="analisar-pesquisa" class="edit-section">
             <h2>Analisar Dados da Pesquisa</h2>
             <p>Nenhum dado para exibir no momento.</p>
         </section>
 
         {% if is_default_admin %}
-        <section id="gerenciar-admin">
+        <section id="gerenciar-admin" class="edit-section">
             <h2>Gerenciar Admin</h2>
             <form id="create-admin-form" method="POST" action="/create_admin">
                 <label for="email">Email:</label>

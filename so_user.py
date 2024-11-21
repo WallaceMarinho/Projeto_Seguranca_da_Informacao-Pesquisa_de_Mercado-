@@ -108,6 +108,28 @@ def update_user_optional_terms(user_id, optional_terms_accepted, mydb):
         print(f"Erro ao atualizar os termos opcionais: {e}")
         return False
 
+def reset_user_optional_terms(user_id, mydb):
+    """
+    Define o termo opcional como NULL para o usuário, pois a versão anterior não é mais válida.
+    """
+    try:
+        cursor = mydb.cursor()
+        cursor.execute("USE surveydb")
+
+        # Define optional_version como NULL para o usuário
+        cursor.execute("UPDATE user_terms_and_privacy_acceptance SET optional_version = NULL WHERE user_id = %s", (user_id,))
+        
+        mydb.commit()
+        result = cursor.rowcount > 0
+        
+        if result:
+            log_event("Rejeição dos termos opcionais", "user_terms_and_privacy_acceptance", user_id, "Versão agora: NULL")
+        
+        return result
+    except Exception as e:
+        print(f"Erro ao resetar os termos opcionais: {e}")
+        return False
+
 def remove_local_user_account(user_id, password, mydb):
     with mydb.cursor(cursor=DictCursor) as cursor:
         cursor.execute("USE surveydb")
@@ -128,3 +150,12 @@ def remove_google_user_account(user_id, mydb):
         mydb.commit()
         log_event("Conta de usuário Google removida", "user_login", user_id)
         return True
+
+def validate_user_password(user_id, password, mydb):
+    # Aqui você deve implementar a lógica para verificar a senha do usuário
+    with mydb.cursor() as cursor:
+        cursor.execute("SELECT password FROM user_login WHERE id = %s", (user_id,))
+        user = cursor.fetchone()
+        if user and user['password'] == password:
+            return True
+        return False

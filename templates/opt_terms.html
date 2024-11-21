@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Termos Opcionais</title>
+    <style>.error { color: red; }</style>
+</head>
+<body>
+    <h1>Termos Opcionais</h1>
+    <p>Houve atualização do termo opcional e seu consentimento foi desabilitado. Para continuar recebendo informações por email e SMS, leia e aceite novamente os termos.</p>
+    <div>
+        <h3>Nova Versão do Termo Opcional:</h3>
+        <div>{{ optional_content }}</div>
+    </div>
+    <button onclick="acceptOptionalTerms()">Aceitar novos termos opcionais</button>
+    <button onclick="window.close()">Fechar</button>
+
+    <script>
+        function acceptOptionalTerms() {
+            fetch('/accept-optional-terms', { method: 'POST' })
+                .then(response => response.ok ? window.location.href = '/survey_route' : alert('Erro ao aceitar os termos.'));
+        }
+    </script>
+</body>
+</html>

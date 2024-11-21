@@ -3,35 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aceite dos Termos e Política de Privacidade</title>
+    <title>Aceite os Termos de Uso e Política de Privacidade</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .error { color: red; font-size: 0.9em; }
+    </style>
 </head>
 <body>
     <h1>Aceite os Termos de Uso e Política de Privacidade</h1>
     
-    <form action="/accept-terms" method="POST">
+    <form id="accept-terms-form" action="/new-terms" method="POST">
         <div>
-            <input type="checkbox" id="terms" name="terms">
-            <label for="terms">Eu aceito os Termos de Uso - Versão {{ terms_version }}</label>
+            <input type="checkbox" id="terms" name="terms" {% if terms_ok %} checked {% endif %} onclick="checkTerms()">
+            <label for="terms">Eu aceito os Termos de Uso - Versão {{ terms_version }} <a href="javascript:void(0)" onclick="openPopup('mandatory')">(Ler)</a></label>
+            <p class="error">{{ terms_message }}</p>
         </div>
         
         <div>
-            <input type="checkbox" id="privacy" name="privacy">
-            <label for="privacy">Eu aceito a Política de Privacidade - Versão {{ privacy_version }}</label>
+            <input type="checkbox" id="privacy" name="privacy" {% if privacy_ok %} checked {% endif %} onclick="checkPrivacy()">
+            <label for="privacy">Eu aceito a Política de Privacidade - Versão {{ privacy_version }} <a href="javascript:void(0)" onclick="openPopup('privacy')">(Ler)</a></label>
         </div>
 
         <button id="accept-btn" type="submit" disabled>Aceitar e acessar</button>
+        <button type="button" id="remove-account-btn" onclick="showRemoveAccount()">Discordo, remover conta</button>
     </form>
+
+    <div id="remove-account-section" style="display:none;">
+        <h2>Confirme a Exclusão da Conta</h2>
+        <input type="password" id="confirm-password" placeholder="Digite sua senha">
+        <button id="confirm-remove-btn" onclick="removeAccount()">Confirmar Remoção</button>
+        <p id="remove-account-message"></p>
+    </div>
+
+    <script>
+        const acceptBtn = document.getElementById('accept-btn');
+
+        function checkTerms() {
+            acceptBtn.disabled = !(document.getElementById('terms').checked && document.getElementById('privacy').checked);
+        }
+
+        function checkPrivacy() {
+            acceptBtn.disabled = !(document.getElementById('terms').checked && document.getElementById('privacy').checked);
+        }
+
+        function showRemoveAccount() {
+            document.getElementById('remove-account-section').style.display = 'block';
+        }
+
+        function removeAccount() {
+            const password = document.getElementById('confirm-password').value;
+            if (!password) {
+                document.getElementById('remove-account-message').textContent = 'Por favor, digite sua senha.';
+                return;
+            }
+
+            // Fazer uma chamada AJAX para a rota de remoção de conta
+            fetch('/remove-account', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ password: password })
+            })
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById('remove-account-message').textContent = 'Conta removida com sucesso.';
+                    window.location.href = '/login'; // Redirecionar para a página de login após remoção
+                } else {
+                    return response.json().then(data => {
+                        document.getElementById('remove-account-message').textContent = data.message || 'Senha incorreta.';
+                    });
+                }
+            });
+        }
+
+        function openPopup(termType) {
+            let url;
+            let title;
+
+            switch (termType) {
+                case 'mandatory':
+                    url = '/terms/mandatory';
+                    title = 'Termos Obrigatórios';
+                    break;
+                case 'privacy':
+                    url = '/terms/privacy';
+                    title = 'Política de Privacidade';
+                    break;
+            }
+
+            window.open(url, title, 'width=600,height=400,scrollbars=yes');
+        }
+    </script>
 </body>
-<script>
-    const termsCheckbox = document.getElementById('terms');
-    const privacyCheckbox = document.getElementById('privacy');
-    const acceptBtn = document.getElementById('accept-btn');
-
-    function toggleButtonState() {
-        acceptBtn.disabled = !(termsCheckbox.checked && privacyCheckbox.checked);
-    }
-
-    termsCheckbox.addEventListener('change', toggleButtonState);
-    privacyCheckbox.addEventListener('change', toggleButtonState);
-</script>
 </html>

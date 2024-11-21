@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS user_login (
     provider ENUM('local', 'google') DEFAULT 'local' NOT NULL
 );
 
--- Tabela para os Termos de uso e Política de Privacidade
+-- Modificação da tabela para garantir unicidade de (type, is_current)
 CREATE TABLE IF NOT EXISTS terms_and_privacy_policy (
     id INT AUTO_INCREMENT PRIMARY KEY,
     version CHAR(4) NOT NULL,
@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS terms_and_privacy_policy (
     content TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_current BOOLEAN DEFAULT FALSE,
-    UNIQUE(version, type)
+    UNIQUE(version, type),
+    UNIQUE(type, is_current)
 );
 
 -- Tabela para aceitar os termos e política de privacidade

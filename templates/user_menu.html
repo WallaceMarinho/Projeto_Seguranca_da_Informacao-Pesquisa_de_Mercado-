@@ -42,10 +42,12 @@
                 <select id="bairro" name="bairro">
                     <option value="">Selecione o bairro</option>
                 </select><br>
-        
-                <label for="senha">Nova Senha (6 dígitos):</label>
-                <input type="password" id="senha" name="senha" maxlength="6"><br>
-        
+
+                {% if not is_google_user %}
+                    <label for="senha">Nova Senha (6 dígitos):</label>
+                    <input type="password" id="senha" name="senha" maxlength="6"><br>
+                {% endif %}
+
                 <button type="button" onclick="submitEditUserData()">Salvar</button>
             </form>
         </div>
@@ -111,8 +113,6 @@
                 if (data.updated) {
                     if (data.was_accepted) {
                         alert("O Termo Opcional foi atualizado e desmarcado. Acesse a guia Termos de Uso para ativá-lo novamente.");
-                    } else {
-                        alert("O Termo Opcional foi atualizado. Você pode ler e ativá-lo na guia Termos de Uso.");
                     }
                 }
             });
