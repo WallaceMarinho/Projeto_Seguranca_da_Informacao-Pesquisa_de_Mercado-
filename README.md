@@ -61,22 +61,22 @@ Esse comando adiciona o usuário ubuntu ao grupo sudo, permitindo-lhe usar coman
 
 Agora, vamos instalar o banco de dados MariaDB. No terminal da sua VM, execute os seguintes comandos:
 
-#### Atualize a lista de pacotes
+### Atualize a lista de pacotes
 ```bash
 sudo apt-get update
 ```
 
-#### Instale o MariaDB
+### Instale o MariaDB
 ```bash
 sudo apt-get install mariadb-server -y
 ```
 
-#### Após a instalação, inicie o serviço do MariaDB:
+### Após a instalação, inicie o serviço do MariaDB:
 ```bash
 sudo systemctl start mariadb
 ```
 
-#### Verifique se o MariaDB está em execução com o comando:
+### Verifique se o MariaDB está em execução com o comando:
 ```bash
 sudo systemctl status mariadb
 ```
@@ -86,13 +86,13 @@ Após instalar o MariaDB, vamos acessar o banco de dados e criar um usuário pad
 sudo mysql
 ```
 
-##### Crie um novo usuário e conceda privilégios
+### Crie um novo usuário e conceda privilégios
 ```bash
 CREATE USER 'usuario_padrão'@'localhost' IDENTIFIED BY 'senha_do_usuario';
 GRANT ALL PRIVILEGES ON *.* TO 'usuario_padrão'@'localhost' WITH GRANT OPTION;
 ```
 
-#### Saia do MariaDB
+### Saia do MariaDB
 ```bash
 EXIT;
 ```
@@ -100,16 +100,16 @@ EXIT;
 Esses comandos criam um usuário usuario_padrão com a senha senha_do_usuario e concedem a ele todos os privilégios no banco de dados.
 
 Por fim, vamos instalar o Redis, que será utilizado para armazenar dados temporários, como informações de login dos usuários. Execute os seguintes comandos:
-#### Instale o Redis
+### Instale o Redis
 ```bash
 sudo apt-get install redis-server -y
 ```
 
-#### Inicie o Redis
+### Inicie o Redis
 ```bash
 sudo systemctl start redis
 ```
-#### Verifique se o Redis está em execução
+### Verifique se o Redis está em execução
 ```bash
 sudo systemctl status redis
 ```
@@ -159,5 +159,71 @@ Rode o código com:
 ```bash
 python3 so_main.py
 ```
+Certifique-se de que a vm na AWS esteja iniciada. Agora, acesse a aplicação pela URL do seu navegador com o ip da sua vm : porta informada no terminal.
 
+## Passo 3: Configurações do Load Balancer
+
+### Verificando os IPs das VMs Locais
+Agora que as VMs locais estão configuradas, o próximo passo é configurar o **load balancer** para distribuir as requisições entre elas de maneira eficiente. Siga os passos abaixo para configurar corretamente o balanceamento de carga com Docker e Nginx.
+
+
+Primeiro, verifique os endereços IP de suas VMs locais e garanta que eles sejam diferentes. Para isso, utilize o comando:
+
+```bash
+ip a
+```
+
+Se for necessário alterar o IP de uma das VMs, entre no diretório de configuração de rede e edite o arquivo:
+```bash
+sudo nano /etc/network/interfaces
+```
+
+Após realizar a alteração, reinicie o serviço de rede com o comando:
+```bash
+sudo systemctl restart networking
+```
+### Escolhendo a VM Responsável pelo Balanceamento de Carga
+Escolha uma das VMs para ser responsável pelo balanceamento de carga entre as outras duas. Para isso, baixe e instale o Docker na máquina escolhida. Execute o comando abaixo para instalar o Docker:
+
+```bash
+sudo apt-get update
+sudo apt-get install docker.io
+```
+### Baixando e configurando o servidor Nginx
+Agora, baixe o repositório que contém as configurações necessárias para rodar o Nginx em um container Docker. Você pode fazer isso clonando o repositório diretamente no diretório raiz ou na pasta home do seu usuário:
+```bash
+git clone https://github.com/Rafael-Caje/ProjSurvey.git
+```
+
+Dentro do repositório clonado, edite o arquivo nginx.conf para incluir os IPs das outras VMs que irão receber as requisições. Isso permitirá que o Nginx faça o roteamento adequado para cada uma delas.
+
+Você pode também configurar a prioridade de carga de cada VM ajustando a propriedade weight nas configurações do Nginx. Isso garante que as requisições sejam distribuídas conforme a carga de trabalho de cada máquina.
+
+### Iniciando o Container Docker
+Após configurar o arquivo do Nginx, inicie o container Docker com o seguinte comando:
+```bash
+docker compose up -d
+```
+Isso irá rodar o Nginx dentro de um container Docker, pronto para balancear as requisições.
+
+Para verificar as imagens criadas e os containers que estão rodando, utilize os comandos abaixo:
+```bash
+docker image ls
+docker ps
+```
+
+Caso precise parar o container, execute o seguinte comando:
+```bash
+docker compose down
+```
+### Etapas finais 
+Agora, acesse as VMs que irão receber as requisições HTTP e entre no diretório do projeto. Dentro da pasta static, edite o arquivo styles.css para alterar a cor de fundo da aplicação. Isso ajudará a identificar visualmente em qual VM o balanceamento de carga te redirecionou.
+
+Com o container Docker em execução e o código ativo nas outras VMs, acesse a aplicação através da URL do seu navegador:
+
+```bash
+http://<ip-da-sua-vm-load-balancer>:<porta-do-container-docker>
+```
+
+Isso permitirá que você visualize como o balanceamento de carga está funcionando, distribuindo as requisições entre as VMs conforme configurado.
 
