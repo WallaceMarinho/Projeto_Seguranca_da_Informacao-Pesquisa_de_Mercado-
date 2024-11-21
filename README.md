@@ -116,4 +116,48 @@ sudo systemctl status redis
 
 Com esses comandos, o servidor Redis será instalado e iniciado. Você pode verificar o status para garantir que está funcionando corretamente.
 
+## Passo 2: Configurações iniciais das vms locais:
+
+Baixe o Oracle Virtual Box e crie 3 instâncias do tipo Debian com a placa de rede em modo bridge. Na instância, após definir o usuário padrão e configurações iniciais, baixe o Python versão 3.9 com:
+
+```bash
+sudo apt update
+sudo apt install python3.9
+```
+
+Instale o pip na versão que converse com Python 3.9:
+
+```bash
+sudo apt install python3-pip
+```
+Em seguida, baixe o Github em cada VM e baixe o código fonte da aplicação neste repositório com:
+```bash
+sudo apt install git
+git clone https://github.com/WallaceMarinho/Projeto_Seguranca_da_Informacao-Pesquisa_de_Mercado-.git
+```
+
+Use o comando abaixo para copiar e colar a chave .pem da sua VM AWS para as suas VMs locais, mantendo ela no diretório oculto .ssh:
+```bash
+scp -i <caminho_da_chave.pem> ubuntu@<ip_da_vm_aws>:/home/ubuntu/.ssh/<nome_da_chave.pem> ~/.ssh/
+```
+Entre no diretório git da aplicação e crie um novo arquivo chamado .env a partir do arquivo .env.example para configurar as variáveis de ambiente com seus parâmetros, utilizando o comando:
+```bash
+cp .env.example .env
+```
+
+Edite o arquivo .env para configurar as variáveis de ambiente:
+```bash
+nano .env
+```
+
+Salve e feche o arquivo, e execute o comando abaixo para instalar as bibliotecas necessárias para rodar o código, destacadas em requirements.txt:
+```bash
+pip install -r requirements.txt
+```
+
+Rode o código com:
+```bash
+python3 so_main.py
+```
+
 
