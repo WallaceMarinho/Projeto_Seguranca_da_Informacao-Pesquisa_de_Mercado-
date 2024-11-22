@@ -43,7 +43,7 @@ Para começar, acesse o serviço **EC2** da AWS com sua conta. Em seguida, crie 
 
 ![Portas AWS](docs_img/portas_aws.PNG)
 
-### 1.2 - Instalação do MariaDB e Redis
+### Instalação do MariaDB e Redis
 
 Após as configurações iniciais, abra o terminal no Windows, entre no diretório onde a sua chave `.pem` está armazenada e acesse a sua instância AWS via SSH com o seguinte comando:
 
@@ -226,4 +226,186 @@ http://<ip-da-sua-vm-load-balancer>:<porta-do-container-docker>
 ```
 
 Isso permitirá que você visualize como o balanceamento de carga está funcionando, distribuindo as requisições entre as VMs conforme configurado.
+
+## Passo 4: Configurações da VPN com OpenVPN
+
+**Atenção:** A VPN do OpenVPN deve ser instalada na **VM que gerencia o load balancer**, pois ela será responsável por criar o túnel de segurança entre ela, as outras VMs e o nosso PC local.
+
+- **Servidor:** VM do Load Balancer
+- **Cliente:** Nosso próprio PC local
+
+## Instalação e configurações da VPN na VM do Load Balancer
+
+1. Instale o OpenVPN:
+
+```bash
+sudo apt install openvpn -y
+```
+
+Navegue até o diretório de configuração do OpenVPN:
+cd /etc/openvpn
+ls
+
+Remova os subdiretórios padrão para evitar problemas:
+```bash
+sudo rm -rf client
+sudo rm -rf server
+```
+
+Crie o arquivo de configuração para o servidor VPN:
+```bash
+touch server.conf
+sudo nano server.conf
+```
+
+Insira as seguintes configurações no arquivo server.conf:
+```bash
+dev tun
+ifconfig 10.8.0.1 10.8.0.2
+secret /etc/openvpn/chave
+port 1194
+proto udp
+keepalive 10 120
+persist-key
+persist-tun
+float
+cipher AES256
+comp-lzo
+verb 4
+```
+
+Atenção: Em ifconfig, criamos um IP para atrelar à VPN ao invés de usar os IPs das VMs. O OpenVPN não aceita IPs como 192.168.1.230, por isso usamos o formato 10.8.0.x.
+
+Crie o arquivo de configuração do cliente a partir do arquivo server.conf:
+```bash
+cat server.conf > client.conf
+```
+
+Edite o arquivo client.conf:
+```bash
+sudo nano client.conf
+```
+
+Insira as seguintes configurações no arquivo client.conf:
+```bash
+dev tun
+ifconfig 10.8.0.2 10.8.0.1
+remote 192.168.1.210
+secret C:\\caminho\\para\\sua\\chave
+port 1194
+proto udp
+keepalive 10 120
+persist-key
+persist-tun
+float
+cipher AES256
+comp-lzo
+verb 4
+```
+
+Atenção: Em ifconfig, os IPs devem ser invertidos. No server.conf, colocamos o IP do servidor primeiro e, no client.conf, o IP do cliente primeiro. Em remote, coloque o IP privado da VM do load balancer. Em secret, forneça o caminho completo da chave que será criada posteriormente.
+
+## Movendo os Arquivos Necessários
+Gere a chave de acesso para a VPN:
+```bash
+sudo openvpn --genkey --secret chave
+```
+
+Exiba o conteúdo da chave e verifique as vereficações do diretório:
+```bash
+cat chave
+ll
+```
+
+Mude a propriedade da chave para o usuário comum:
+```bash
+sudo chown usuario:usuario chave
+```
+Caso não tenha criado um par de chaves para as outras vms locais, use o comando o comando:
+```bash
+ssh-keygen -t rsa -b 4096
+```
+
+Copie os arquivos chave e client.conf para o diretório /home/usuario:
+```bash
+cp client.conf /home/usuario
+cp chave /home/usuario
+```
+
+Transfira a chave .pub para a pasta local do seu PC:
+```bash
+scp usuario@ip_da_vm:~/.ssh/id_rsa.pub "C:\caminho\para\colar a chave localmente"
+```
+
+No Windows, baixe a chave e o arquivo client.conf da VM com:
+```bash
+scp -i chave.pub usuario@ip_da_vm:/caminho/do/arquivo .
+```
+
+Mantenha os arquivos chave e client.conf no mesmo diretório e renomeie o arquivo client.conf para client.ovpn.
+
+Baixe o instalador do OpenVPN [aqui](https://openvpn.net/community-downloads/).
+
+## Rodando o Código e Configurações Finais
+
+Após instalar o OpenVPN no Windows, clique no ícone do OpenVPN (na barra de tarefas, ao lado do ícone de Wi-Fi). Clique com o botão direito, escolha Import, depois Importar Arquivo, e selecione o arquivo client.ovpn. Certifique-se de que a chave está no mesmo diretório e no caminho correto dentro do arquivo.
+
+Na VM do Load Balancer, execute o comando para iniciar o servidor VPN:
+```bash
+openvpn --config server.conf
+```
+
+Atenção: Caso receba um erro indicando que a porta 1194 já está em uso, mate o processo com o comando:
+```bash
+killall openvpn
+```
+
+Depois, execute novamente o comando para iniciar o servidor VPN.
+
+Com o servidor VPN iniciado, vá novamente para o ícone do OpenVPN no Windows, clique com o botão direito e selecione Conectar. Se todas as configurações estiverem corretas, o cliente será conectado ao servidor na VM.
+
+Você também pode editar o arquivo client.ovpn em tempo real clicando com o botão direito no ícone do OpenVPN e selecionando Editar configurações.
+
+## Rodando a VPN em Segundo Plano
+
+Note que, ao executar a VPN, o terminal da VM fica dedicado a essa função. Para continuar trabalhando nas outras funcionalidades, como o load balancer, execute a VPN em segundo plano usando o tmux.
+
+Instale o tmux:
+```bash
+sudo apt install tmux
+```
+Crie uma nova sessão no tmux chamada vpn:
+```bash
+tmux new -s vpn
+```
+Dentro do novo subterminal, execute o comando:
+```bash
+openvpn --config server.conf
+```
+Para sair do subterminal sem interromper o processo, use a combinação de teclas Ctrl + B, seguida de D, ou Ctrl + D e B.
+
+Liste as sessões ativas do tmux:
+```bash
+tmux list-sessions
+```
+Para voltar à sessão vpn, execute:
+```bash
+tmux attach-session -t vpn
+```
+Para encerrar a sessão vpn, execute:
+```bash
+tmux kill-session -t vpn
+```
+Para matar todas as sessões do tmux, execute:
+```bash
+tmux kill-server
+```
+Para mudar de uma sessão para outra, use:
+```bash
+tmux switch -t <nome_da_sessao>
+```
+
+
+
+
 
