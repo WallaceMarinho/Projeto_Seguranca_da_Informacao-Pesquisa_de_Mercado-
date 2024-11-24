@@ -50,3 +50,24 @@ CREATE TABLE IF NOT EXISTS survey_responses (
     answer TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES user_login(id) ON DELETE CASCADE
 );
+
+-- Tabela para armazenar os termos opcionais e suas versões
+CREATE TABLE IF NOT EXISTS optional_terms (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    optional_code VARCHAR(100) NOT NULL,
+    version CHAR(4) NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_current BOOLEAN DEFAULT FALSE,
+    UNIQUE(optional_code, version)
+);
+
+-- Tabela para registrar aceites de termos opcionais por usuário
+CREATE TABLE IF NOT EXISTS user_optional_terms_acceptance (
+    user_id INT NOT NULL,
+    optional_term_id INT NOT NULL,
+    accepted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, optional_term_id),
+    FOREIGN KEY (user_id) REFERENCES user_login(id) ON DELETE CASCADE,
+    FOREIGN KEY (optional_term_id) REFERENCES optional_terms(id) ON DELETE CASCADE
+);

@@ -95,3 +95,54 @@
 2024-11-06 10:36:09.311546 | Evento: Novo usuário adicionado | Tabela: user_login | ID: 9
 2024-11-06 10:36:09.319380 | Evento: Termos e Política de privacidade aceitos | Tabela: user_terms_and_privacy_acceptance | ID: 9 | Info adicional: Versão dos Termos: 0001, Versão da Privacidade: 0001
 2024-11-06 10:41:25.766385 | Evento: Aceitação dos termos opcionais | Tabela: user_terms_and_privacy_acceptance | ID: 9 | Info adicional: Versão aceita: 0001
+2024-11-15 23:37:44.361016 | Evento: Conta de usuário removida | Tabela: user_login | ID: 10
+2024-11-20 16:21:53.629415 | Evento: Atualização de Termos | Tabela: user_terms_and_privacy_acceptance | ID: 11 | Info adicional: Versão dos termos atualizada para: 0001
+2024-11-20 16:30:19.646813 | Evento: Atualização de Termos | Tabela: user_terms_and_privacy_acceptance | ID: 11 | Info adicional: Versão dos termos atualizada para: 0001
+2024-11-20 16:32:17.100065 | Evento: Atualização de Termos | Tabela: user_terms_and_privacy_acceptance | ID: 11 | Info adicional: Versão dos termos atualizada para: 0001
+2024-11-20 19:35:23.569036 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: {'4', 'optional_email', '3'}, Termos removidos: {3}
+2024-11-20 19:52:55.925209 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: {'3', 'optional_email', '4'}, Termos removidos: {4}
+2024-11-20 20:00:28.791863 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: {'optional_email', '3', '4'}, Termos removidos: {3}
+2024-11-20 20:09:52.771306 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: {'3', 'optional_email', '4'}, Termos removidos: {4}
+2024-11-20 20:16:18.268338 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: {'optional_email', '4', '3'}, Termos removidos: {3}
+2024-11-20 20:18:03.863533 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: {'3', '4', 'optional_email'}, Termos removidos: {4}
+2024-11-20 20:59:11.830863 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: {4}, Termos removidos: set()
+2024-11-20 20:59:38.543529 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: set(), Termos removidos: {3}
+2024-11-20 20:59:53.833367 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: {3}, Termos removidos: set()
+2024-11-20 21:06:06.780370 | Evento: Removeu optional_email | Tabela: user_terms_and_privacy_acceptance | ID: 11 | Info adicional: optional_version removido (NULL)
+2024-11-20 21:06:06.788173 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: set(), Termos removidos: set()
+2024-11-20 21:21:19.263808 | Evento: Atualização de versão de termos | Tabela: user_terms_and_privacy_acceptance | ID: 11 | Info adicional: Nova versão: 0002
+2024-11-20 21:21:19.273763 | Evento: Aceitou optional_email | Tabela: user_terms_and_privacy_acceptance | ID: 11 | Info adicional: optional_version atualizado para: 0002
+2024-11-20 21:35:19.037604 | Evento: Removeu optional_email | Tabela: user_terms_and_privacy_acceptance | ID: 11 | Info adicional: optional_version removido (NULL)
+2024-11-21 08:38:06.659869 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: set(), Termos removidos: set()
+2024-11-21 08:39:12.391220 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: set(), Termos removidos: set()
+2024-11-21 08:40:31.234363 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: set(), Termos removidos: set()
+2024-11-21 08:40:48.174638 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: set(), Termos removidos: set()
+2024-11-21 08:41:18.286649 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: set(), Termos removidos: set()
+2024-11-21 08:41:43.936002 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: set(), Termos removidos: set()
+2024-11-21 08:42:07.849421 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: set(), Termos removidos: set()
+2024-11-21 08:42:43.117856 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: set(), Termos removidos: set()
+2024-11-21 08:52:26.020379 | Evento: Aceitou optional_email | Tabela: user_terms_and_privacy_acceptance | ID: 11 | Info adicional: optional_version atualizado para: 0002
+2024-11-21 08:52:38.225414 | Evento: Removeu optional_email | Tabela: user_terms_and_privacy_acceptance | ID: 11 | Info adicional: optional_version removido (NULL)
+2024-11-21 08:52:46.401455 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: set(), Termos removidos: {4}
+2024-11-21 08:52:56.627209 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: set(), Termos removidos: {3}
+2024-11-21 08:53:04.330384 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: {3, 4}, Termos removidos: set()
+2024-11-21 11:03:32.181957 | Evento: Aceitação dos Termos - Versão 0001, Política de Privacidade - Versão 0001 | Tabela: user_terms_and_privacy_acceptance | ID: 7
+2024-11-21 11:08:03.630655 | Evento: Rejeição dos termos opcionais | Tabela: user_terms_and_privacy_acceptance | ID: 9 | Info adicional: Versão agora: NULL
+2024-11-21 11:09:19.269275 | Evento: Rejeição dos termos opcionais | Tabela: user_terms_and_privacy_acceptance | ID: 11 | Info adicional: Versão agora: NULL
+2024-11-21 11:10:15.609418 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: {4, 5}, Termos removidos: set()
+2024-11-21 11:25:09.567194 | Evento: Aceitou optional_email | Tabela: user_terms_and_privacy_acceptance | ID: 11 | Info adicional: optional_version atualizado para: 0002
+2024-11-21 11:57:02.050852 | Evento: Aceitação dos Termos - Versão 0002, Política de Privacidade - Versão 0001 | Tabela: user_terms_and_privacy_acceptance | ID: 9
+2024-11-21 11:58:18.382678 | Evento: Aceitação dos Termos - Versão 0002, Política de Privacidade - Versão 0001 | Tabela: user_terms_and_privacy_acceptance | ID: 11
+2024-11-21 14:20:51.885681 | Evento: Aceitou optional_email | Tabela: user_terms_and_privacy_acceptance | ID: 11 | Info adicional: optional_version atualizado para: 0002
+2024-11-21 14:20:51.898515 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: {6}, Termos removidos: set()
+2024-11-21 14:30:37.221943 | Evento: Aceitou optional_email | Tabela: user_terms_and_privacy_acceptance | ID: 11 | Info adicional: optional_version atualizado para: 0002
+2024-11-21 14:30:37.242795 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 11 | Info adicional: Termos adicionados: {7}, Termos removidos: set()
+2024-11-21 23:26:22.146262 | Evento: Conta de usuário removida | Tabela: user_login | ID: 11
+2024-11-21 23:30:05.895785 | Evento: Remover consentimento | Tabela: user_optional_terms_acceptance | ID: 12 | Info adicional: IDs removidos: [4]
+2024-11-21 23:30:57.595225 | Evento: Atualização de termos | Tabela: user_optional_terms_acceptance | ID: 12 | Info adicional: Termos adicionados: {6}, Termos removidos: set()
+2024-11-21 23:32:01.886459 | Evento: Conta de usuário removida | Tabela: user_login | ID: 12
+2024-11-21 23:33:17.936817 | Evento: Resetar optional_version | Tabela: user_terms_and_privacy_acceptance | ID: 13 | Info adicional: Versão opcional resetada para NULL
+2024-11-21 23:34:20.387877 | Evento: Aceitou optional_email | Tabela: user_terms_and_privacy_acceptance | ID: 13 | Info adicional: optional_version atualizado para: 0002
+2024-11-21 23:34:39.448186 | Evento: Conta de usuário removida | Tabela: user_login | ID: 13
+2024-11-21 23:36:06.083674 | Evento: Remover consentimento | Tabela: user_optional_terms_acceptance | ID: 14 | Info adicional: IDs removidos: [4]
+2024-11-21 23:36:06.111933 | Evento: Resetar optional_version | Tabela: user_terms_and_privacy_acceptance | ID: 14 | Info adicional: Versão opcional resetada para NULL

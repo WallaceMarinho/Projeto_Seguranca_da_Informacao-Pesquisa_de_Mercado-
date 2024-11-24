@@ -1,11 +1,13 @@
 from flask import Blueprint, flash, render_template, request, redirect, session, url_for, jsonify
 from middlewares import admin_required, login_required, registration_required, terms_accepted_required
 from so_survey import read_survey_responses, submit_survey, survey, update_survey_responses, questions, response_options
-from so_terms_login import get_user_optional_version, log_event, register_user, login_user, get_terms_and_privacy, bairros, update_user_terms_acceptance, verify_terms_version
+from so_terms_login import get_optional_term_by_id, get_user_optional_version, log_event, register_user, login_user, get_terms_and_privacy, bairros, update_user_terms_acceptance, verify_terms_version
 from db_connection import mydb
-from so_user import edit_user_data, get_user_terms_status, remove_google_user_account, remove_local_user_account, reset_user_optional_terms, update_user_optional_terms, view_user_data
+from so_user import edit_user_data, get_user_terms_status, remove_google_user_account, remove_local_user_account, reset_user_terms_by_ids, update_user_optional_terms, verify_optional_terms_update, view_user_data
 from config import google, userinfo
 from pymysql.cursors import DictCursor
+
+from so_user_management import fetch_current_terms
 
 app_routes = Blueprint('app_routes', __name__)
 
@@ -184,19 +186,36 @@ def upd_terms_route():
 
 @app_routes.route('/check_optional_terms_update', methods=['GET'])
 def check_optional_terms_update():
-    terms_data = get_terms_and_privacy(mydb)
+    """
+    Verifica se os termos opcionais aceitos pelo usuário estão atualizados
+    e realiza o reset se necessário.
+    """
+    user_id = session.get('user_id')
 
-    if terms_data:
-        current_optional_version = terms_data['optional_version']
-        user_optional_version = get_user_optional_version(mydb)
+    if not user_id:
+        return jsonify({'error': 'Usuário não logado.'}), 401
 
-        # Verifica se a versão do termo aceito pelo usuário é anterior à versão atual
-        if user_optional_version is not None and user_optional_version < current_optional_version:
-            # Reseta o consentimento do termo opcional
-            reset_user_optional_terms(session.get('user_id'), mydb)
-            return jsonify(updated=True, was_accepted=True)
+    try:
+        # Verifica atualizações nos termos opcionais
+        optional_terms_status = verify_optional_terms_update(mydb, user_id)
 
-    return jsonify(updated=False)
+        # Verifica versão global única de optional_version
+        terms_data = get_terms_and_privacy(mydb)
+        if terms_data:
+            current_optional_version = terms_data['optional_version']
+            user_optional_version = get_user_optional_version(mydb)
+
+            # Se a versão global for maior, reseta o optional_version
+            if user_optional_version is not None and user_optional_version < current_optional_version:
+                reset_user_terms_by_ids(user_id, [], mydb, reset_global_version=True)
+                optional_terms_status['updated'] = True
+                optional_terms_status['was_accepted'] = True
+
+        print(f"Status final da atualização: {optional_terms_status}")
+        return jsonify(optional_terms_status)
+    except Exception as e:
+        print(f"Erro na verificação de termos opcionais: {e}")
+        return jsonify({'error': 'Erro ao verificar atualização de termos opcionais.'}), 500
 
 @app_routes.route('/accept-optional-terms', methods=['POST'])
 def accept_optional_terms():
@@ -233,8 +252,13 @@ def new_terms_route():
 
 @app_routes.route('/terms', methods=['GET'])
 def terms():
-    terms = get_terms_and_privacy(mydb)
-    return render_template('terms.html', terms=terms)
+    terms_data = get_terms_and_privacy(mydb)
+    optional_terms = fetch_current_terms()
+    return render_template(
+        'terms.html',
+        terms_data=terms_data,
+        optional_terms=optional_terms
+    )
 
 @app_routes.route('/terms/mandatory')
 def mandatory_terms():
@@ -251,7 +275,7 @@ def optional_terms():
     optional_terms_text = terms_data.get('optional')
     optional_terms_version = terms_data.get('optional_version')
     
-    return render_template('terms_popup.html', title="Termos Opcionais",
+    return render_template('terms_popup.html', title="Recebimento de emails",
                            content=optional_terms_text, version=optional_terms_version)
 
 @app_routes.route('/terms/privacy')
@@ -263,6 +287,21 @@ def privacy_policy():
     return render_template('terms_popup.html', title="Política de Privacidade",
                            content=privacy_policy_text, version=privacy_policy_version)
 
+@app_routes.route('/terms/optional/<int:optional_id>')
+def optional_term(optional_id):
+    print(f"Buscando termo opcional com ID: {optional_id}")
+    
+    term = get_optional_term_by_id(optional_id, mydb)
+    if term:
+        return render_template(
+            'terms_popup.html', 
+            title=term['optional_code'],
+            content=term['content'],
+            version=term['version']
+        )
+    else:
+        return "Termo opcional não encontrado.", 404
+
 @app_routes.route('/new_user')
 def new_user():
     session['registering'] = True
@@ -272,30 +311,36 @@ def new_user():
 def submit_terms():
     data = request.get_json()
 
+    # Verifica se os termos obrigatórios foram aceitos
     mandatory_accepted = data.get('mandatoryTermsAccepted', False)
-    optional_accepted = data.get('optionalTermsAccepted', False)
-    privacy_policy_accepted = data.get('privacyPolicyAccepted', False)
 
-    if mandatory_accepted and privacy_policy_accepted:
+    if mandatory_accepted:
         terms_data = get_terms_and_privacy(mydb)
+        optional_terms_data = fetch_current_terms()
 
+        # Obter dados dos termos opcionais aceitos
+        accepted_optional_terms = [
+            {
+                'id': term['id'],
+                'optional_code': term['optional_code'],
+                'version': term['version']
+            }
+            for term in optional_terms_data if str(term['id']) in data.get('optionalTermsAccepted', [])
+        ]
+
+        # Salvar dados no session
         session['terms_accepted'] = {
             'mandatory': True,
-            'optional': optional_accepted,
-            'privacy': True,
+            'privacy': True,  # Aceitação implícita da política de privacidade
             'terms_version': terms_data['terms_version'],
-            'optional_version': terms_data['optional_version'],
-            'privacy_version': terms_data['privacy_version']
+            'privacy_version': terms_data['privacy_version'],
+            'optional_version': terms_data['optional_version'],  # Apenas se existir
+            'optional_terms': accepted_optional_terms
         }
 
-        if 'registering' in session:
-            return jsonify({"message": "Termos aceitos. Redirecionando para registro..."}), 200
+        return jsonify({"message": "Termos aceitos. Redirecionando para registro..."}), 200
 
-        user_id = session.get('user_id')
-        if user_id:
-            return redirect(url_for('app_routes.user_menu_route', user_id=user_id))
-
-    return jsonify({"error": "Você deve aceitar os termos obrigatórios e a Política de Privacidade."}), 400
+    return jsonify({"error": "Você deve aceitar os Termos Obrigatórios para prosseguir."}), 400
 
 @app_routes.route('/survey', methods=['GET', 'POST'])
 # @terms_accepted_required
@@ -325,39 +370,35 @@ def user_menu_route():
 
     return render_template('user_menu.html', user_id=user_id, is_google_user=is_google_user)
 
-@app_routes.route('/manage_terms', methods=['POST'])
-# @login_required
+@app_routes.route('/manage_terms', methods=['GET'])
 def manage_terms_route():
-    user_id = request.json.get('user_id')
+    user_id = request.args.get('user_id')
+    if not user_id:
+        return jsonify({'error': True, 'message': 'User ID é obrigatório.'}), 400
+
     terms_status = get_user_terms_status(user_id, mydb)
+    if 'error' in terms_status:
+        return jsonify({'error': True, 'message': terms_status['message']}), 500
 
-    if terms_status.get('error'):
-        return jsonify({
-            'success': False,
-            'message': terms_status['message']
-        })
-
-    return jsonify({
-        'success': True,
-        'mandatory_terms': True,
-        'privacy_version': True,
-        'optional_terms': terms_status['optional']
-    })
+    return jsonify({'success': True, **terms_status}), 200
 
 @app_routes.route('/save_terms', methods=['POST'])
-# @login_required
 def save_terms_route():
-    user_id = request.json.get('user_id')
-    optional_terms_accepted = request.json.get('optionalTerms')
+    data = request.get_json()
+    user_id = data.get('user_id')
+    optional_terms_accepted = data.get('optional_terms_accepted', [])
 
-    if optional_terms_accepted is None:
-        return jsonify({'success': False, 'message': 'Aceitação dos termos opcionais não fornecida.'})
+    if not user_id:
+        return jsonify({'error': True, 'message': 'User ID é obrigatório.'}), 400
 
-    success = update_user_optional_terms(user_id, optional_terms_accepted, mydb)  # Passando apenas dois argumentos agora
-    if success:
-        return jsonify({'success': True, 'message': 'Termos opcionais salvos com sucesso.'})
+    # Atualiza os termos no banco de dados
+    changes_made = update_user_optional_terms(user_id, optional_terms_accepted, mydb)
+
+    # Retorna a mensagem com base no resultado
+    if changes_made:
+        return jsonify({'success': True, 'message': 'Termos opcionais atualizados com sucesso.'}), 200
     else:
-        return jsonify({'success': False, 'message': 'Erro ao salvar os termos opcionais.'})
+        return jsonify({'success': True, 'message': 'Nenhuma alteração solicitada.'}), 200
 
 @app_routes.route('/get_user_data', methods=['GET'])
 # @login_required

@@ -45,7 +45,7 @@ def connect():
     return None, None
 
 def create_tables(mydb):
-    with open('ddl.sql', 'r') as f:
+    with open('DDL.sql', 'r') as f:
         ddl_script = f.read()
     with mydb.cursor() as cursor:
         for statement in ddl_script.split(';'):

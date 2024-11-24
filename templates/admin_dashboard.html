@@ -9,7 +9,7 @@
         .edit-section { display: none; }
         .visible { display: block; }
         .error { color: red; font-size: 0.9em; }
-        .success { color: green; font-size: 0.9em; } /* Estilo opcional para mensagens de sucesso */
+        .success { color: green; font-size: 0.9em; }
     </style>    
     <script>
 
@@ -49,7 +49,6 @@
         }
 
         function showPasswordConfirmation() {
-            // Exibe o campo de confirmação de senha e o botão Confirmar
             const senhaConfirmInput = document.getElementById('senha_confirm_account');
             const confirmButton = document.getElementById('confirm-button');
             senhaConfirmInput.style.display = 'inline';
@@ -96,7 +95,7 @@
         }
 
         function onManageAccountClick() {
-            loadAccountData(); // Carrega dados apenas ao clicar
+            loadAccountData();
             toggleSection('gerenciar-conta');
         }
 
@@ -115,14 +114,27 @@
                 .catch(error => console.error("Erro na requisição:", error));
         }
 
+        function getPolicyLabel(type, version) {
+            if (type === 'terms') {
+                return `Termo de Uso - Versão ${version}`;
+            } else if (type === 'privacy') {
+                return `Política de Privacidade - Versão ${version}`;
+            } else if (type.startsWith('optional')) {
+                const optionalNumber = type.replace('optional', '');
+                return `Opcional ${optionalNumber} - Versão ${version}`;
+            } else {
+                return `Desconhecido - Versão ${version}`;
+            }
+        }
+
         function onEditPolicyTermsClick() {
             toggleSection('editar-politica-termos');
-            loadPolicyTerms(); // Carrega os termos ao clicar na guia
+            loadPolicyTerms();
         }
 
         function savePolicyTerms(event) {
-            event.preventDefault(); // Impede o envio padrão do formulário
-            document.getElementById('password-section').style.display = 'block'; // Exibe o campo de senha
+            event.preventDefault();
+            document.getElementById('password-section').style.display = 'block';
         }
 
         function confirmSave(event) {
@@ -143,11 +155,9 @@
             })
             .then(response => response.json())
             .then(data => {
-                // Exibe a mensagem na área de mensagens flash existente no HTML
                 const messageClass = data.success ? 'success' : 'error';
                 document.getElementById('message-container').innerHTML = `<ul class="flash-messages"><li class="${messageClass}">${data.message}</li></ul>`;
 
-                // Limpa e oculta o campo de senha após a operação
                 document.getElementById('admin-password').value = '';
                 document.getElementById('password-section').style.display = 'none';
             })
@@ -157,19 +167,95 @@
             });
         }
 
+        function loadOptionalTerms() {
+            fetch('/admin/get_optional_terms')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('optional-terms-container');
+                    container.innerHTML = '';
+
+                    data.optional_terms.forEach(term => {
+                        const termDiv = document.createElement('div');
+                        termDiv.innerHTML = `
+                            <textarea id="content_${term.id}">${term.content}</textarea>
+                            <button onclick="updateOptionalTerm(${term.id})">Salvar</button>
+                            <button onclick="deleteOptionalTerm(${term.id})">Excluir</button>
+                            <label>${term.optional_code} (Versão ${term.version})</label><br>
+                            -----------------------------------------------------
+                        `;
+                        container.appendChild(termDiv);
+                    });
+                })
+                .catch(error => console.error("Erro ao carregar os termos opcionais:", error));
+        }
+
+        function updateOptionalTerm(termId) {
+            const updatedContent = document.getElementById(`content_${termId}`).value;
+
+            fetch(`/admin/update_optional_term/${termId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: updatedContent })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                loadOptionalTerms();
+            })
+            .catch(error => console.error("Erro ao atualizar o termo opcional:", error));
+        }
+
+        function deleteOptionalTerm(termId) {
+            fetch(`/admin/delete_optional_term/${termId}`, { method: 'DELETE' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    loadOptionalTerms();
+                })
+                .catch(error => console.error("Erro ao excluir o termo opcional:", error));
+        }
+
         document.addEventListener("DOMContentLoaded", function() {
-            // Listener para carregar política e termos ao mudar o tipo
+            loadOptionalTerms();
+
             document.getElementById('type').addEventListener('change', loadPolicyTerms);
-            
-            // Listener para garantir que o campo de telefone aceite apenas números e tenha no máximo 11 caracteres
+
             const telefoneInput = document.getElementById('telefone');
             telefoneInput.addEventListener('input', function () {
-                this.value = this.value.replace(/\D/g, '').slice(0, 11); // Permite apenas números e limita a 11 caracteres
+                this.value = this.value.replace(/\D/g, '').slice(0, 11);
             });
 
-            // Listener para o botão de salvar
             document.getElementById('policy-terms-management').addEventListener('submit', savePolicyTerms);
+
+            document.getElementById('optional-term-form').addEventListener('submit', handleOptionalTermFormSubmit);
         });
+
+        function handleOptionalTermFormSubmit(event) {
+            event.preventDefault();
+
+            const optionalTermData = {
+                optional_code: document.getElementById('optional_code').value,
+                content: document.getElementById('optional_content').value
+            };
+
+            fetch('/admin/create_optional_term', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(optionalTermData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.success) {
+                    document.getElementById('optional-term-form').reset();
+                    loadOptionalTerms();
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert("Erro ao adicionar termo opcional.");
+            });
+        }
 
         function loadManageUsers() {
             fetch('/admin/get_users')
@@ -208,7 +294,7 @@
                 .catch(error => console.error('Error loading users:', error));
         }
 
-        let allUsers = []; // Armazena todos os usuários carregados
+        let allUsers = [];
 
         function loadManageUsers() {
             fetch('/admin/get_users')
@@ -219,15 +305,15 @@
                     return response.json();
                 })
                 .then(data => {
-                    allUsers = data.users; // Armazena os usuários para filtragem
-                    displayUsers(allUsers); // Chama função para exibir usuários
+                    allUsers = data.users;
+                    displayUsers(allUsers);
                 })
                 .catch(error => console.error('Error loading users:', error));
         }
 
         function displayUsers(users) {
             const userListDiv = document.getElementById('user-list');
-            userListDiv.innerHTML = ''; // Limpa a lista atual
+            userListDiv.innerHTML = '';
 
             users.forEach(user => {
                 const userItem = document.createElement('div');
@@ -258,12 +344,10 @@
         function filterUsers() {
             const searchValue = normalizeString(document.getElementById('user-search').value.trim());
 
-            // Filtra os usuários verificando combinações de nome, sobrenome e email
             const filteredUsers = allUsers.filter(user => {
                 const fullName = normalizeString(`${user.nome} ${user.sobrenome}`);
                 const email = normalizeString(user.email);
 
-                // Condições para verificar o nome completo e as possíveis combinações
                 return (
                     fullName.includes(searchValue) ||
                     email.includes(searchValue) ||
@@ -278,19 +362,18 @@
                 );
             });
 
-            displayUsers(filteredUsers); // Atualiza a exibição com os usuários filtrados
+            displayUsers(filteredUsers);
         }
 
         function onManageUsersClick() {
             toggleSection('gerenciar-usuario');
-            loadManageUsers(); // Carrega os usuários ao clicar na guia
+            loadManageUsers();
         }
 
         function toggleSenhaInput(userId, action) {
             const senhaInput = action === 'update' ? document.getElementById(`senha_confirm_${userId}`) : document.getElementById(`senha_confirm_${userId}_delete`);
-            senhaInput.style.display = senhaInput.style.display === 'none' ? 'inline' : 'none'; // Alterna a exibição do campo de senha
+            senhaInput.style.display = senhaInput.style.display === 'none' ? 'inline' : 'none';
 
-            // Se a senha estiver visível, habilita o envio do formulário
             if (senhaInput.style.display === 'inline') {
                 senhaInput.focus();
             } else {
@@ -301,28 +384,24 @@
                     return false;
                 }
 
-                // Adiciona a senha confirmada ao formulário antes de enviá-lo
                 const senhaHiddenInput = document.createElement('input');
                 senhaHiddenInput.type = 'hidden';
                 senhaHiddenInput.name = 'senha_confirm';
                 senhaHiddenInput.value = senha;
                 form.appendChild(senhaHiddenInput);
 
-                // Envia o formulário
                 form.submit();
             }
         }
 
         function confirmAndSubmit() {
             const senhaConfirmacao = document.getElementById('password_confirmation').value;
-            
-            // Verifica se o campo de confirmação de senha está preenchido
+
             if (!senhaConfirmacao) {
                 alert("Por favor, confirme sua senha.");
                 return;
             }
 
-            // Realiza a requisição para atualização dos dados
             submitAccountData();
         }
 
@@ -390,7 +469,7 @@
                 <button type="button" onclick="showPasswordConfirmation()">Salvar Alterações</button>
                 <button type="button" id="confirm-button" onclick="submitAccountData()" style="display: none;">Confirmar</button>
             </form>
-            <div id="feedback"></div> <!-- Elemento para mensagens de feedback -->
+            <div id="feedback"></div>
         </section>
 
         <section id="editar-politica-termos" class="edit-section">
@@ -400,7 +479,7 @@
                 <select id="type" name="type" required onchange="loadPolicyTerms()">
                     <option value="terms">Termos de Uso</option>
                     <option value="privacy">Política de Privacidade</option>
-                    <option value="optional">Opcional</option>
+                    <option value="optional">Recebimento de emails</option>
                 </select>
                 
                 <div id="version-label" style="float:right; margin-bottom: 10px;"></div>
@@ -413,15 +492,29 @@
                     <label for="admin-password">Digite sua senha para confirmar:</label>
                     <input type="password" id="admin-password" name="admin-password" required>
                     <button type="button" onclick="confirmSave(event)">Confirmar</button>
-                    <div id="flash-messages" class="flash-messages"></div> <!-- Para mensagens de flash -->
+                    <div id="flash-messages" class="flash-messages"></div>
                 </div>
             </form>
+
+            <h2>Criar Novo Termo Opcional</h2>
+            <form id="optional-term-form" method="POST">
+                <label for="optional_code">Nome do Termo Opcional:</label>
+                <input type="text" id="optional_code" name="optional_code" required>
+                
+                <label for="optional_content">Conteúdo do Termo:</label>
+                <textarea id="optional_content" name="content" rows="5" required></textarea>
+                
+                <button type="submit">Adicionar Termo Opcional</button>
+            </form>
+            
+            <h3>Termos Opcionais Atuais</h3>
+            <div id="optional-terms-container"></div>
         </section>
 
         <section id="gerenciar-usuario" class="edit-section" style="display: none;">
             <h2>Gerenciar Usuário</h2>
             <input type="text" id="user-search" placeholder="Buscar por nome, sobrenome ou e-mail" oninput="filterUsers()">
-            <div id="user-list"></div> <!-- Área onde os usuários serão carregados -->
+            <div id="user-list"></div>
         </section>
 
         <section id="analisar-pesquisa" class="edit-section">

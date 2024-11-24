@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, render_template, redirect, url_for, request, session, flash
 from so_user import view_user_data
-from so_user_management import create_admin, fetch_current_policy_terms, fetch_user_dashboard_data, list_users, log_adm_event, remove_user_by_id, update_terms_policy, update_user, update_user_email_in_db, validate_admin_password
+from so_user_management import create_admin, fetch_current_policy_terms, fetch_current_terms, fetch_user_dashboard_data, insert_optional_term_in_db, list_users, log_adm_event, remove_optional_term, remove_user_by_id, update_optional_term_in_db, update_terms_policy, update_user, update_user_email_in_db, validate_admin_password
 from db_connection import mydb
 
 admin_routes = Blueprint('admin_routes', __name__)
@@ -41,21 +41,17 @@ def update_account():
 
     form_data = request.form
     password_confirmation = form_data.get('password_confirmation')
-    
-    # Verifica se o campo de senha de confirmação está vazio
+
     if not password_confirmation:
         return jsonify({"success": False, "message": "Senha de confirmação necessária."}), 400
-    
-    # Valida a senha de confirmação usando validate_admin_password
+
     if not validate_admin_password(adm_id, password_confirmation):
         return jsonify({"success": False, "message": "Senha incorreta."}), 400
 
-    # Validação do campo telefone
     telefone = form_data.get('telefone', '')
     if not telefone.isdigit() or len(telefone) != 11:
         return jsonify({"success": False, "message": "O campo telefone deve conter 11 dígitos numéricos."}), 400
 
-    # Atualiza os dados do usuário e registra o log
     success = update_user(adm_id, form_data)
     log_adm_event("Atualização de conta bem-sucedida" if success else "Erro ao atualizar conta", changed_data=form_data)
     
@@ -103,6 +99,44 @@ def update_policy_terms():
             return jsonify(success=False, message="Senha incorreta."), 403
     else:
         return jsonify(success=False, message="Acesso negado."), 403
+
+@admin_routes.route('/get_optional_terms', methods=['GET'])
+def get_optional_terms():
+    terms = fetch_current_terms()
+    return jsonify({"optional_terms": terms, "success": True})
+
+@admin_routes.route('/create_optional_term', methods=['POST'])
+def create_optional_term():
+    data = request.json
+    content = data.get('content')
+
+    if not content:
+        return jsonify({"message": "O conteúdo do termo não pode estar vazio.", "success": False}), 400
+
+    try:
+        insert_optional_term_in_db(content)
+        return jsonify({"message": "Novo termo opcional inserido com sucesso.", "success": True})
+    except Exception as e:
+        return jsonify({"message": f"Erro ao inserir o termo: {str(e)}", "success": False}), 500
+
+@admin_routes.route('/update_optional_term/<int:term_id>', methods=['PUT'])
+def update_optional_term(term_id):
+    data = request.json
+    new_content = data.get('content')
+
+    if not new_content:
+        return jsonify({"message": "O conteúdo do termo não pode estar vazio.", "success": False}), 400
+
+    try:
+        update_optional_term_in_db(term_id, new_content)
+        return jsonify({"message": "Termo opcional atualizado com sucesso.", "success": True})
+    except Exception as e:
+        return jsonify({"message": f"Erro ao atualizar o termo: {str(e)}", "success": False}), 500
+
+@admin_routes.route('/delete_optional_term/<int:term_id>', methods=['DELETE'])
+def delete_optional_term(term_id):
+    remove_optional_term(term_id)
+    return jsonify({"message": "Termo opcional excluído com sucesso.", "success": True})
 
 @admin_routes.route('/get_users', methods=['GET'])
 def get_users():
@@ -167,7 +201,6 @@ def get_admins():
     user_role = session.get('role')
     is_default_admin = session.get('is_default_admin')
 
-    # Apenas o admin padrão pode acessar a lista de outros administradores
     if user_role == 'admin' and is_default_admin:
         admins = list_users(mydb, 'admin')
         return jsonify({'admins': admins})

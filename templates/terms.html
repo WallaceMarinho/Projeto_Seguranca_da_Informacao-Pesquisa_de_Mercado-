@@ -14,13 +14,22 @@
         <input type="checkbox" id="mandatoryTerms" name="mandatoryTerms" required>
         <label for="mandatoryTerms">Eu aceito os termos obrigatórios.</label><br>
 
-        <p><strong>Termos Opcionais:</strong> <a href="#" onclick="openPopup('optional')">Ver</a></p>
-        <input type="checkbox" id="optionalTerms" name="optionalTerms">
-        <label for="optionalTerms">Eu aceito os termos opcionais.</label><br>
+        <p><strong>Termos Opcionais:</strong></p>
+        <div>
+            <input type="checkbox" id="optionalTerms" name="optionalTerms" value="terms_and_privacy_policy">
+            <label for="optionalTerms">Recebimento de emails</label>
+            <a href="#" onclick="openPopup('optional')">Ver</a><br>
+        </div>
+
+        {% for term in optional_terms %}
+            <div>
+                <input type="checkbox" id="optionalTerm{{ term.id }}" name="optionalTerms" value="{{ term.id }}">
+                <label for="optionalTerm{{ term.id }}"> {{ term.optional_code }}</label> 
+                <a href="#" onclick="openPopup('optional', '{{ term.id }}')">Ver</a><br>
+            </div>
+        {% endfor %}
 
         <p><strong>Política de Privacidade:</strong> <a href="#" onclick="openPopup('privacy')">Ver</a></p>
-        <input type="checkbox" id="privacyPolicy" name="privacyPolicy" required>
-        <label for="privacyPolicy">Eu aceito a Política de Privacidade.</label><br><br>
 
         <button type="submit">Aceitar Termos</button>
     </form>
@@ -28,7 +37,8 @@
     <p id="status"></p>
 
     <script>
-        function openPopup(termType) {
+
+        function openPopup(termType, optionalId = null) {
             let url;
             let title;
 
@@ -38,7 +48,7 @@
                     title = 'Termos Obrigatórios';
                     break;
                 case 'optional':
-                    url = '/terms/optional';
+                    url = optionalId ? `/terms/optional/${optionalId}` : '/terms/optional';
                     title = 'Termos Opcionais';
                     break;
                 case 'privacy':
@@ -54,8 +64,12 @@
             event.preventDefault();
 
             const mandatoryTermsAccepted = document.getElementById('mandatoryTerms').checked;
-            const optionalTermsAccepted = document.getElementById('optionalTerms').checked;
-            const privacyPolicyAccepted = document.getElementById('privacyPolicy').checked;
+            const optionalTermsAccepted = [];
+
+            const optionalTermsCheckboxes = document.querySelectorAll('input[name="optionalTerms"]:checked');
+            optionalTermsCheckboxes.forEach(checkbox => {
+                optionalTermsAccepted.push(checkbox.value);
+            });
 
             const response = await fetch('/submit_terms', {
                 method: 'POST',
@@ -64,15 +78,14 @@
                 },
                 body: JSON.stringify({
                     mandatoryTermsAccepted: mandatoryTermsAccepted,
-                    optionalTermsAccepted: optionalTermsAccepted,
-                    privacyPolicyAccepted: privacyPolicyAccepted
+                    optionalTermsAccepted: optionalTermsAccepted
                 })
             });
 
             const data = await response.json();
             document.getElementById('status').innerText = data.message || data.error;
 
-            if (response.ok && mandatoryTermsAccepted && privacyPolicyAccepted) {
+            if (response.ok && mandatoryTermsAccepted) {
                 setTimeout(() => {
                     location.href = '/register';
                 }, 2000);

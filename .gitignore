@@ -13,8 +13,10 @@ __pycache__/
 
 # archive
 *client_secret*
+*copy*
 
 # Folders
+logs/
 venv/
 
 

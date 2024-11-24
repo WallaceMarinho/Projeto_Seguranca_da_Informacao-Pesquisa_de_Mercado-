@@ -61,30 +61,35 @@
         <div class="edit-form" id="termsForm" style="display: none;">
             <h2>Termos de Uso</h2>
             
+            <!-- Termos Obrigatórios -->
             <p><strong>Termos Obrigatórios:</strong> <a href="#" onclick="openTermsPopup('mandatory')">Ver</a></p>
             <div>
                 <input type="checkbox" id="mandatoryTerms" name="mandatoryTerms" checked disabled>
-                <label for="mandatoryTerms">Eu aceito os termos obrigatórios. <span style="color: red;">*</span></label>
-                <p style="color: red; font-style: bold;">
-                    * Para cancelar seu consentimento com os termos obrigatórios ou Política de privacidade, remova sua conta (<i>Excluir Conta</i> no seu menu) <br> ou solicite a remoção enviando um email para <i>admin@system.com</i>.
+                <label for="mandatoryTerms">Eu aceito os Termos Obrigatórios. <span style="color: red;">*</span></label>
+                <p style="color: red; font-weight: bold;">
+                    * Para cancelar seu consentimento com os Termos Obrigatórios ou Política de Privacidade, remova sua conta (<i>Excluir Conta</i> no menu) ou envie um email para <i>admin@system.com</i>.
                 </p>
             </div>
         
-            <p><strong>Termos Opcionais:</strong> <a href="#" onclick="openTermsPopup('optional')">Ver</a></p>
-            <div>
-                <input type="checkbox" id="optionalTerms" name="optionalTerms">
-                <label for="optionalTerms">Eu aceito os termos opcionais.</label><br><br>
+            <!-- Termos Opcionais -->
+            <p><strong>Termos Opcionais:</strong></p>
+            <div id="optionalTermsContainer">
+                <!-- Este espaço será preenchido dinamicamente com os termos opcionais do banco -->
             </div>
 
+            <!-- Política de Privacidade -->
             <p><strong>Política de Privacidade:</strong> <a href="#" onclick="openTermsPopup('privacy')">Ver</a></p>
             <div>
                 <input type="checkbox" id="privacyPolicy" name="privacyPolicy" checked disabled>
                 <label for="privacyPolicy">Eu aceito a Política de Privacidade. <span style="color: red;">*</span></label>
             </div>
         
-            <button type="button" onclick="saveTerms()">Salvar Alterações</button>
-            <p id="feedbackMessage"></p>
+            <!-- Botão de salvar -->
+            <button onclick="submitTerms(event)">Salvar Alterações</button>
         </div>
+        
+        <!-- Status -->
+        <p id="status"></p>
 
         <div id="userData" data-is-google-user="{{ is_google_user | tojson }}"></div>
 
@@ -266,7 +271,7 @@
             });
         }
 
-        function openTermsPopup(termType) {
+        function openTermsPopup(termType, termId = null) {
             let url;
             let title;
 
@@ -276,7 +281,8 @@
                     title = 'Termos Obrigatórios';
                     break;
                 case 'optional':
-                    url = '/terms/optional';
+                    // Verificar se o termId existe e abrir o URL correto
+                    url = termId ? `/terms/optional/${termId}` : '/terms/optional';
                     title = 'Termos Opcionais';
                     break;
                 case 'privacy':
@@ -285,52 +291,71 @@
                     break;
             }
 
-            window.open(url, title, 'width=600,height=400,scrollbars=yes');
+            // Corrigido o tamanho da janela para ser mais amigável
+            window.open(url, title, 'width=800,height=600,scrollbars=yes');
         }
 
-        function manageTerms() {
+        async function manageTerms() {
             const termsForm = document.getElementById("termsForm");
             termsForm.style.display = termsForm.style.display === "none" ? "block" : "none";
 
             if (termsForm.style.display === "block") {
-                fetch('/manage_terms', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ user_id: "{{ user_id }}" })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        document.getElementById('optionalTerms').checked = data.optional_terms;
-                    } else {
-                        document.getElementById("feedbackMessage").textContent = data.message;
-                    }
-                });
+                const response = await fetch(`/manage_terms?user_id=${encodeURIComponent("{{ user_id }}")}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    // Preenche termos obrigatórios
+                    const optionalTermsContainer = document.getElementById("optionalTermsContainer");
+                    optionalTermsContainer.innerHTML = ""; // Limpa termos antigos
+
+                    // Adicionar o termo "Recebimento de emails" como um termo opcional extra
+                    const emailTermHtml = `
+                        <div>
+                            <input type="checkbox" id="optionalTermEmail" 
+                                name="optionalTerms" value="optional_email" ${data.optional_email_consented ? 'checked' : ''}>
+                            <label for="optionalTermEmail">Recebimento de emails</label>
+                            <a href="#" onclick="openTermsPopup('optional')">Ver</a>
+                        </div>`;
+                    optionalTermsContainer.innerHTML += emailTermHtml;
+
+                    // Carregar termos opcionais do banco
+                    data.optional_terms.forEach(term => {
+                        const termHtml = `
+                            <div>
+                                <input type="checkbox" id="optionalTerm${term.id}" 
+                                    name="optionalTerms" value="${term.id}" ${term.consented ? 'checked' : ''}>
+                                <label for="optionalTerm${term.id}">${term.optional_code}</label>
+                                <a href="#" onclick="openTermsPopup('optional', ${term.id})">Ver</a>
+                            </div>`;
+                        optionalTermsContainer.innerHTML += termHtml;
+                    });
+
+                } else {
+                    document.getElementById("status").innerText = data.message;
+                }
             }
         }
 
-        function saveTerms() {
-            const optionalTermsAccepted = document.getElementById('optionalTerms').checked;
+        async function submitTerms(event) {
+            event.preventDefault();
 
-            fetch('/save_terms', {
+            // Obtém termos opcionais aceitos
+            const optionalTermsAccepted = Array.from(
+                document.querySelectorAll('input[name="optionalTerms"]:checked')
+            ).map(input => input.value);
+
+            // Envia dados para salvar
+            const response = await fetch('/save_terms', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     user_id: "{{ user_id }}",
-                    optionalTerms: optionalTermsAccepted
+                    optional_terms_accepted: optionalTermsAccepted  // Corrigido o nome da chave
                 })
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById("feedbackMessage").textContent = data.message;
-                if (data.success) {
-                    document.getElementById("termsForm").style.display = "none";
-            }
             });
+
+            const data = await response.json();
+            document.getElementById("status").innerText = data.message || data.error;
         }
 
         function showRemoveAccountForm() {

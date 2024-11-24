@@ -4,6 +4,7 @@ import bcrypt
 from flask import session
 from pymysql.cursors import DictCursor
 from db_connection import mydb
+from so_terms_login import format_optional_code
 
 def log_adm_event(event, changed_data=None, failed_attempt=False):
     log_dir = "logs"
@@ -72,22 +73,18 @@ def update_terms_policy(mydb, type, content):
             with mydb.cursor() as cursor:
                 print(type)
                 cursor.execute("USE surveydb")
-
-                # Busca a última versão atual marcada como is_current = TRUE para o tipo especificado
                 cursor.execute(""" 
                     SELECT version FROM terms_and_privacy_policy
                     WHERE type = %s AND is_current = TRUE
                 """, (type,))
-                result = cursor.fetchone()['version']  # Extrai diretamente o valor de 'version'
+                result = cursor.fetchone()['version']
                 print(result)
 
-                # Verifica se result é None e lança uma exceção se for o caso
                 if result is None:
                     raise ValueError("Verifique o erro, não é possível versão None.")
 
-                # Converte para número e incrementa, garantindo 4 dígitos
-                max_version = int(result)  # Converte string para número, caso necessário
-                new_version = str(max_version + 1).zfill(4)  # Incrementa e formata para 4 dígitos
+                max_version = int(result)
+                new_version = str(max_version + 1).zfill(4)
                 print(new_version)
 
                 # Desativa a versão atual
@@ -97,7 +94,6 @@ def update_terms_policy(mydb, type, content):
                     WHERE type = %s AND is_current = TRUE
                 """, (type,))
 
-                # Insere o novo conteúdo como versão atual
                 cursor.execute(""" 
                     INSERT INTO terms_and_privacy_policy (version, content, type, is_current) 
                     VALUES (%s, %s, %s, TRUE)
@@ -106,34 +102,79 @@ def update_terms_policy(mydb, type, content):
                 mydb.commit()
                 print("Política/Termo atualizado com sucesso.")
         except Exception as e:
-            print(f"Erro ao atualizar política/termos: {e}")  # Log do erro para o terminal
-            mydb.rollback()  # Rollback em caso de erro
-            raise  # Re-levanta a exceção para ser capturada na rota
+            print(f"Erro ao atualizar política/termos: {e}")
+            mydb.rollback()
+            raise
 
-def add_optional_term(mydb, optional_code, content):
-    with mydb.cursor() as cursor:
-        # Define uma nova versão para o termo opcional
+def fetch_current_terms():
+    try:
+        cursor = mydb.cursor(DictCursor)
         cursor.execute("USE surveydb")
-        cursor.execute("""
-            SELECT COALESCE(MAX(CAST(version AS UNSIGNED)), 0) + 1 FROM terms_and_privacy_policy 
-            WHERE type = 'optional' AND optional_code = %s
-        """, (optional_code,))
-        new_version = str(cursor.fetchone()[0]).zfill(4)  # Novo número de versão em 4 dígitos
+        cursor.execute("SELECT id, optional_code, version, content FROM optional_terms WHERE is_current = TRUE")
+        return cursor.fetchall()
+    except Exception as e:
+        print(f"Erro ao buscar termos opcionais atuais: {e}")
+        return []
 
-        # Insere o novo termo opcional
-        cursor.execute("""
-            INSERT INTO terms_and_privacy_policy (version, type, optional_code, content, is_current)
-            VALUES (%s, 'optional', %s, %s, TRUE)
-        """, (new_version, optional_code, content))
-
-        # Relaciona o novo termo opcional aos usuários existentes com NULL
-        cursor.execute("""
-            INSERT INTO user_optional_terms_acceptance (user_id, optional_code, version)
-            SELECT id, %s, NULL FROM user_login
-        """, (optional_code,))
-
+def insert_optional_term_in_db(content):
+    with mydb.cursor(cursor=DictCursor) as cursor:
+        cursor.execute("USE surveydb")
+        cursor.execute(
+            "INSERT INTO optional_terms (content, is_current) VALUES (%s, TRUE)",
+            (content,)
+        )
+        
         mydb.commit()
-        print(f"Novo termo opcional {optional_code} (versão {new_version}) adicionado com sucesso.")
+
+def update_optional_term_in_db(term_id, new_content):
+    with mydb.cursor(cursor=DictCursor) as cursor:
+        try:
+            cursor.execute("USE surveydb")
+            cursor.execute(
+                "SELECT optional_code FROM optional_terms WHERE id = %s",
+                (term_id,)
+            )
+            result = cursor.fetchone()
+            if not result:
+                raise ValueError(f"Termo opcional não encontrado para o ID {term_id}.")
+            
+            optional_code = result['optional_code']
+            cursor.execute(
+                """
+                SELECT LPAD(COALESCE(MAX(CAST(version AS UNSIGNED)) + 1, 1), 4, '0') AS new_version
+                FROM optional_terms 
+                WHERE id = %s
+                """,
+                (term_id,)
+            )
+
+            version_result = cursor.fetchone()
+            new_version = version_result['new_version']
+
+            cursor.execute(
+                "UPDATE optional_terms SET is_current = FALSE WHERE id = %s",
+                (term_id,)
+            )
+
+            cursor.execute(
+                """
+                INSERT INTO optional_terms (optional_code, version, content, is_current)
+                VALUES (%s, %s, %s, TRUE)
+                """,
+                (optional_code, new_version, new_content)
+            )
+
+            mydb.commit()
+
+        except Exception as e:
+            print(f"Ocorreu um erro durante a execução da consulta: {e}")
+            mydb.rollback()
+
+def remove_optional_term(term_id):
+    with mydb.cursor(cursor=DictCursor) as cursor:
+        cursor.execute("USE surveydb")
+        cursor.execute("DELETE FROM optional_terms WHERE id = %s", (term_id,))
+        mydb.commit()
 
 def format_timestamp(ts):
     if ts is not None:

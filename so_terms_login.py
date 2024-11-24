@@ -3,6 +3,8 @@ from flask import session
 from pymysql.cursors import DictCursor
 import os
 import datetime
+import unicodedata
+import re
 
 def log_event(event, table, record_id, additional_info=None):
     log_dir = "logs"
@@ -37,11 +39,10 @@ def register_user(mydb, nome, sobrenome, telefone, email, senha, bairro, provide
             with mydb.cursor() as cursor:
                 cursor.execute("USE surveydb")
 
-                if provider == 'local' and senha:
-                    hashed_password = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt())
-                else:
-                    hashed_password = None 
+                # Hash da senha (se necessário)
+                hashed_password = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt()) if provider == 'local' and senha else None
 
+                # Inserir o usuário
                 cursor.execute(
                     "INSERT INTO user_login (nome, sobrenome, telefone, email, password, bairro, provider) "
                     "VALUES (%s, %s, %s, %s, %s, %s, %s)", 
@@ -50,27 +51,39 @@ def register_user(mydb, nome, sobrenome, telefone, email, senha, bairro, provide
                 mydb.commit()
                 user_id = cursor.lastrowid
 
+                # Recuperar aceitação dos termos
                 terms_accepted = session.get('terms_accepted')
-                terms_version = terms_accepted.get('terms_version')
-                privacy_version = terms_accepted.get('privacy_version')
+                if not terms_accepted:
+                    raise ValueError("Aceitação dos termos não encontrada na sessão.")
 
-                optional_version = terms_accepted.get('optional_version') if terms_accepted.get('optional') else None
-
+                # Salvar aceitação dos termos obrigatórios e privacidade
                 cursor.execute(
                     "INSERT INTO user_terms_and_privacy_acceptance (user_id, terms_version, privacy_version, optional_version, accepted_at) "
                     "VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)",
-                    (user_id, terms_version, privacy_version, optional_version)
+                    (
+                        user_id,
+                        terms_accepted['terms_version'],
+                        terms_accepted['privacy_version'],
+                        terms_accepted.get('optional_version')  # Pode ser None
+                    )
                 )
+
+                # Salvar aceitação dos termos opcionais
+                for term in terms_accepted.get('optional_terms', []):
+                    cursor.execute(
+                        "SELECT id FROM optional_terms WHERE optional_code = %s AND version = %s",
+                        (term['optional_code'], term['version'])
+                    )
+                    optional_term_id = cursor.fetchone()
+                    if optional_term_id:
+                        cursor.execute(
+                            "INSERT INTO user_optional_terms_acceptance (user_id, optional_term_id, accepted_at) "
+                            "VALUES (%s, %s, CURRENT_TIMESTAMP)",
+                            (user_id, optional_term_id['id'])
+                        )
 
                 mydb.commit()
                 session['user_id'] = user_id
-
-                log_event("Novo usuário adicionado", "user_login", user_id)
-                terms_info = get_terms_and_privacy(mydb)
-                if terms_info:
-                    version_info = f"Versão dos Termos: {terms_info['terms_version']}, Versão da Privacidade: {terms_info['privacy_version']}"
-                    log_event("Termos e Política de privacidade aceitos", "user_terms_and_privacy_acceptance", user_id, additional_info=version_info)
-
                 return user_id
 
         except Exception as e:
@@ -174,6 +187,44 @@ def get_terms_and_privacy(mydb):
             }
     return None
 
+def get_optional_term_by_id(optional_id, mydb):
+    if mydb:
+        with mydb.cursor() as cursor:
+            cursor.execute("USE surveydb")
+            cursor.execute("""
+                SELECT id, version, content, optional_code 
+                FROM optional_terms 
+                WHERE id = %s AND is_current = TRUE
+            """, (optional_id,))
+            return cursor.fetchone()
+    return None
+
+def get_user_optional_version(mydb):
+    user_id = session.get('user_id')
+    if user_id is None:
+        raise ValueError("User ID not found in session.")
+
+    with mydb.cursor() as cursor:
+        cursor.execute("USE surveydb")
+        cursor.execute("""
+            SELECT optional_version 
+            FROM user_terms_and_privacy_acceptance 
+            WHERE user_id = %s
+        """, (user_id,))
+
+        result = cursor.fetchone()
+        return result['optional_version'] if result else None
+
+def format_optional_code(code):
+    # Remove acentuação
+    code = unicodedata.normalize('NFKD', code).encode('ASCII', 'ignore').decode('ASCII')
+    # Converte para minúsculas
+    code = code.lower()
+    # Substitui espaços por hífens e remove caracteres especiais
+    code = re.sub(r'\s+', '-', code)
+    code = re.sub(r'[^a-z0-9\-]', '', code)
+    return code
+
 def verify_terms_version(mydb, user_id):
     terms_and_privacy = get_terms_and_privacy(mydb)
 
@@ -245,19 +296,3 @@ def update_user_terms_acceptance(mydb, user_id, terms_version, privacy_version):
         
         log_event(f"Aceitação dos Termos - Versão {terms_version}, Política de Privacidade - Versão {privacy_version}",
                   "user_terms_and_privacy_acceptance", user_id)
-
-def get_user_optional_version(mydb):
-    user_id = session.get('user_id')
-    if user_id is None:
-        raise ValueError("User ID not found in session.")
-
-    with mydb.cursor() as cursor:
-        cursor.execute("USE surveydb")
-        cursor.execute("""
-            SELECT optional_version 
-            FROM user_terms_and_privacy_acceptance 
-            WHERE user_id = %s
-        """, (user_id,))
-
-        result = cursor.fetchone()
-        return result['optional_version'] if result else None

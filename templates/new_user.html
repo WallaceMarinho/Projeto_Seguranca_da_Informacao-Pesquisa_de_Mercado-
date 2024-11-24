@@ -97,6 +97,15 @@
         </select>
         <br>
 
+        {% if session.get('terms_accepted') and session['terms_accepted'].get('optional_terms') %}
+            <h3>Termos Opcionais Aceitos</h3>
+            <ul>
+                {% for term in session['terms_accepted']['optional_terms']['optional_terms'] %}
+                    <li>{{ term['optional_code'] }} - Versão: {{ term['version'] }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
         <button type="submit">Cadastrar</button>
         <button type="button" onclick="location.href='/'">Voltar</button>
         <br><br>
