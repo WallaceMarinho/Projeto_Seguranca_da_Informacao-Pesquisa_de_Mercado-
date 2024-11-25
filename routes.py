@@ -1,4 +1,7 @@
-from flask import Blueprint, flash, render_template, request, redirect, session, url_for, jsonify
+import os
+import subprocess
+import tempfile
+from flask import Blueprint, flash, render_template, request, redirect, send_file, session, url_for, jsonify
 from middlewares import admin_required, login_required, registration_required, terms_accepted_required
 from so_survey import read_survey_responses, submit_survey, survey, update_survey_responses, questions, response_options
 from so_terms_login import get_optional_term_by_id, get_user_optional_version, log_event, register_user, login_user, get_terms_and_privacy, bairros, update_user_terms_acceptance, verify_terms_version
@@ -501,3 +504,60 @@ def thank_you():
 def logout():
     session.clear()
     return redirect(url_for('app_routes.index'))
+
+
+# Rota para realizar o backup do banco de dados
+@app_routes.route('/backup', methods=['POST'])
+def backup():
+    try:
+        # Defina o nome do arquivo de backup
+        backup_filename = 'backup.sql'
+        backup_file_path = os.path.join(tempfile.gettempdir(), backup_filename)
+
+        # Comando para fazer o dump do banco de dados
+        command = f"mysqldump -u {os.getenv('DB_USER')} -p{os.getenv('DB_PASSWORD')} {os.getenv('DB_NAME')} > {backup_file_path}"
+
+        # Executando o comando do mysqldump
+        subprocess.run(command, shell=True, check=True)
+
+        # Envia o arquivo de backup para o cliente
+        return send_file(backup_file_path, as_attachment=True, download_name=backup_filename)
+
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": f"Erro ao realizar o backup: {str(e)}"}), 500
+
+# Rota para realizar o restore do banco de dados
+@app_routes.route('/restore', methods=['POST'])
+def restore():
+    try:
+        # Recebe o arquivo de backup enviado
+        backup_file = request.files['file']
+
+        # Salva o arquivo temporariamente
+        temp_file_path = os.path.join(tempfile.gettempdir(), backup_file.filename)
+        backup_file.save(temp_file_path)
+
+        # Comando para restaurar o banco de dados a partir do arquivo
+        command = f"mysql -u {os.getenv('DB_USER')} -p{os.getenv('DB_PASSWORD')} {os.getenv('DB_NAME')} < {temp_file_path}"
+
+        # Executando o comando de restore
+        subprocess.run(command, shell=True, check=True)
+
+        return jsonify({"message": "Banco de dados restaurado com sucesso."}), 200
+
+    except subprocess.CalledProcessError as e:
+        return jsonify({"error": f"Erro ao restaurar o banco de dados: {str(e)}"}), 500
+
+        # Função para verificar o status de manutenção
+def is_maintenance_mode():
+    """Verifica se o sistema está em modo de manutenção."""
+    return os.getenv("MAINTENANCE_MODE", "False").lower() == "true"
+
+# Rota para checar o status da aplicação
+@app_routes.route('/status', methods=['GET'])
+def status():
+    """Rota para verificar se a aplicação está em modo de manutenção."""
+    if is_maintenance_mode():
+        return jsonify({"status": "maintenance"}), 503
+    return jsonify({"status": "operational"}), 200
+

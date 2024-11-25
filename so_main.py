@@ -10,12 +10,18 @@ from so_create_db import create_tables
 
 app = Flask(__name__)
 
+# Registro das rotas
 app.register_blueprint(app_routes)
 app.register_blueprint(admin_routes, url_prefix='/admin')
 
 configure_session(app)
 
 def init_app():
+    """Inicializa a aplicação e cria tabelas/admins, respeitando o modo de manutenção."""
+    if os.getenv("MAINTENANCE_MODE", "False").lower() == "true":
+        print("A aplicação está em modo de manutenção. Inicialização suspensa.")
+        return
+
     if mydb:
         try:
             create_tables(mydb)
@@ -26,6 +32,7 @@ def init_app():
         raise ConnectionError("Erro ao conectar ao banco de dados.")
 
 def close_connection():
+    """Fecha a conexão com o banco de dados e o túnel SSH."""
     global tunnel, mydb
     if mydb:
         try:
