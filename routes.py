@@ -3,6 +3,7 @@ import subprocess
 import tempfile
 from flask import Blueprint, flash, render_template, request, redirect, send_file, session, url_for, jsonify
 from middlewares import admin_required, login_required, registration_required, terms_accepted_required
+from restore_backup import remove_user_and_register, restore_backup
 from so_survey import read_survey_responses, submit_survey, survey, update_survey_responses, questions, response_options
 from so_terms_login import get_optional_term_by_id, get_user_optional_version, log_event, register_user, login_user, get_terms_and_privacy, bairros, update_user_terms_acceptance, verify_terms_version
 from db_connection import mydb
@@ -465,8 +466,9 @@ def submit_edit_survey_responses():
         return jsonify({'success': False, 'message': 'Usuário não autenticado.'})
 
 @app_routes.route('/remove_account', methods=['POST'])
-# @login_required
 def remove_account_route():
+    print(f"ID do usuário na sessão: {session.get('user_id')}")
+    print(f"Provedor na sessão: {session.get('provider')}")
     user_id = session.get('user_id')
     provider = session.get('provider')
     print(provider)
@@ -475,14 +477,14 @@ def remove_account_route():
     if not user_id:
         return jsonify({"success": False, "message": "Usuário não autenticado"}), 403
 
-    # Log para ver qual usuário está sendo removido
+    # Lógica para determinar se é um usuário local ou do Google
     if provider == 'google':
         print(f"Removendo conta do usuário Google com ID: {user_id}")
-        success = remove_google_user_account(user_id, mydb)  # Implementar esta função para remover conta do Google
+        success = remove_google_user_account(user_id, mydb)  # Caso aplicável
     else:
         password = request.json.get('password')
         print(f"Removendo conta do usuário local com ID: {user_id}")
-        success = remove_local_user_account(user_id, password, mydb)  # Implementar esta função para remover conta local
+        success = remove_user_and_register(user_id, mydb, log_exclusion=True)
 
     if success:
         # Limpar a sessão após a remoção da conta
@@ -491,7 +493,9 @@ def remove_account_route():
         print("Sessão limpa após remoção da conta.")
         return jsonify({"success": True})
     else:
+        print("Falha ao remover conta. Verifique a lógica na função de remoção.")
         return jsonify({"success": False, "message": "Falha ao remover a conta"}), 400
+
 
 @app_routes.route('/thank_you')
 # @login_required
@@ -541,12 +545,18 @@ def restore():
         command = f"mysql -u {os.getenv('DB_USER')} -p{os.getenv('DB_PASSWORD')} {os.getenv('DB_NAME')} < {temp_file_path}"
 
         # Executando o comando de restore
-        subprocess.run(command, shell=True, check=True)
+        result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-        return jsonify({"message": "Banco de dados restaurado com sucesso."}), 200
+        # Captura as saídas do comando
+        if result.returncode == 0:
+            return jsonify({"message": "Banco de dados restaurado com sucesso."}), 200
+        else:
+            return jsonify({"error": f"Erro ao restaurar o banco de dados: {result.stderr.decode()}"}), 500
 
     except subprocess.CalledProcessError as e:
         return jsonify({"error": f"Erro ao restaurar o banco de dados: {str(e)}"}), 500
+    except Exception as e:
+        return jsonify({"error": f"Erro: {str(e)}"}), 500
 
         # Função para verificar o status de manutenção
 def is_maintenance_mode():

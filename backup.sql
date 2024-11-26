@@ -16,6 +16,34 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Table structure for table `optional_terms`
+--
+
+DROP TABLE IF EXISTS `optional_terms`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `optional_terms` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `optional_code` varchar(100) NOT NULL,
+  `version` char(4) NOT NULL,
+  `content` text NOT NULL,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  `is_current` tinyint(1) DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `optional_code` (`optional_code`,`version`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `optional_terms`
+--
+
+LOCK TABLES `optional_terms` WRITE;
+/*!40000 ALTER TABLE `optional_terms` DISABLE KEYS */;
+/*!40000 ALTER TABLE `optional_terms` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `survey_responses`
 --
 
@@ -30,7 +58,7 @@ CREATE TABLE `survey_responses` (
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `survey_responses_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user_login` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=163 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -39,7 +67,7 @@ CREATE TABLE `survey_responses` (
 
 LOCK TABLES `survey_responses` WRITE;
 /*!40000 ALTER TABLE `survey_responses` DISABLE KEYS */;
-INSERT INTO `survey_responses` VALUES (7,7,'Quantos anos você tem?','22'),(8,7,'Com que frequência você faz compras em supermercados?','1'),(9,7,'Qual a distância do supermercado mais próximo?','1'),(10,7,'Quantas pessoas existem na família incluindo você?','5'),(11,7,'Quanto costuma ficar sua compra no supermercado?','0'),(12,7,'Quanto gasta por mês em mercearia, açougue e sacolão do seu bairro (fora supermercado)?','1'),(19,9,'Quantos anos você tem?','22'),(20,9,'Com que frequência você faz compras em supermercados?','1'),(21,9,'Qual a distância do supermercado mais próximo?','1'),(22,9,'Quantas pessoas existem na família incluindo você?','11'),(23,9,'Quanto costuma ficar sua compra no supermercado?','1'),(24,9,'Quanto gasta por mês em mercearia, açougue e sacolão do seu bairro (fora supermercado)?','0');
+INSERT INTO `survey_responses` VALUES (49,10,'Quantos anos você tem?','22'),(50,10,'Com que frequência você faz compras em supermercados?','3'),(51,10,'Qual a distância do supermercado mais próximo?','1'),(52,10,'Quantas pessoas existem na família incluindo você?','3'),(53,10,'Quanto costuma ficar sua compra no supermercado?','2'),(54,10,'Quanto gasta por mês em mercearia, açougue e sacolão do seu bairro (fora supermercado)?','1'),(133,24,'Quantos anos você tem?','2'),(134,24,'Com que frequência você faz compras em supermercados?','1'),(135,24,'Qual a distância do supermercado mais próximo?','1'),(136,24,'Quantas pessoas existem na família incluindo você?','2'),(137,24,'Quanto costuma ficar sua compra no supermercado?','1'),(138,24,'Quanto gasta por mês em mercearia, açougue e sacolão do seu bairro (fora supermercado)?','1'),(145,26,'Quantos anos você tem?','22'),(146,26,'Com que frequência você faz compras em supermercados?','1'),(147,26,'Qual a distância do supermercado mais próximo?','2'),(148,26,'Quantas pessoas existem na família incluindo você?','22'),(149,26,'Quanto costuma ficar sua compra no supermercado?','3'),(150,26,'Quanto gasta por mês em mercearia, açougue e sacolão do seu bairro (fora supermercado)?','2'),(151,27,'Quantos anos você tem?','30'),(152,27,'Com que frequência você faz compras em supermercados?','3'),(153,27,'Qual a distância do supermercado mais próximo?','2'),(154,27,'Quantas pessoas existem na família incluindo você?','11'),(155,27,'Quanto costuma ficar sua compra no supermercado?','3'),(156,27,'Quanto gasta por mês em mercearia, açougue e sacolão do seu bairro (fora supermercado)?','3'),(157,28,'Quantos anos você tem?','45'),(158,28,'Com que frequência você faz compras em supermercados?','2'),(159,28,'Qual a distância do supermercado mais próximo?','2'),(160,28,'Quantas pessoas existem na família incluindo você?','4'),(161,28,'Quanto costuma ficar sua compra no supermercado?','3'),(162,28,'Quanto gasta por mês em mercearia, açougue e sacolão do seu bairro (fora supermercado)?','1');
 /*!40000 ALTER TABLE `survey_responses` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -58,7 +86,8 @@ CREATE TABLE `terms_and_privacy_policy` (
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `is_current` tinyint(1) DEFAULT 0,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `version` (`version`,`type`)
+  UNIQUE KEY `version` (`version`,`type`),
+  UNIQUE KEY `type` (`type`,`is_current`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -68,7 +97,7 @@ CREATE TABLE `terms_and_privacy_policy` (
 
 LOCK TABLES `terms_and_privacy_policy` WRITE;
 /*!40000 ALTER TABLE `terms_and_privacy_policy` DISABLE KEYS */;
-INSERT INTO `terms_and_privacy_policy` VALUES (1,'0000','terms','Você ainda não possui uma versão de termo obrigatório no banco de dados.','2024-10-29 00:04:01',1),(2,'0000','optional','Você ainda não possui uma versão de termo opcional no banco de dados.','2024-10-29 00:04:01',1),(3,'0000','privacy','Você ainda não possui uma versão de política de privacidade no banco de dados.','2024-10-29 00:04:01',1);
+INSERT INTO `terms_and_privacy_policy` VALUES (1,'0000','terms','Você ainda não possui uma versão de termo obrigatório no banco de dados.','2024-11-25 17:39:45',1),(2,'0000','optional','Você ainda não possui uma versão de termo opcional no banco de dados.','2024-11-25 17:39:45',1),(3,'0000','privacy','Você ainda não possui uma versão de política de privacidade no banco de dados.','2024-11-25 17:39:45',1);
 /*!40000 ALTER TABLE `terms_and_privacy_policy` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -93,7 +122,7 @@ CREATE TABLE `user_login` (
   `provider` enum('local','google') NOT NULL DEFAULT 'local',
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=29 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -102,8 +131,35 @@ CREATE TABLE `user_login` (
 
 LOCK TABLES `user_login` WRITE;
 /*!40000 ALTER TABLE `user_login` DISABLE KEYS */;
-INSERT INTO `user_login` VALUES (1,'admin','system','00000000000','admin@system.com','# Senha do usuário PADRÃO do seu sistema (6 caracteres)','NENHUM','admin',1,'2024-10-29 00:04:01','local'),(3,'exemplo','legal','12988370248','exemplo@email.com','$2b$12$DgRdW.LwwH4o9D1hX6T/XO11L2nmJJx4I/m0dDDD.SdNldxS5VKUG','JARDIM MARIANA II','user',0,'2024-11-05 11:43:55','local'),(4,'exemplo','legal','12988370248','exemplo.legal@gmail.com','$2b$12$kSHqcCmiki0xZdLy5GEOZeOMG/gYeMhv0RgYE3pKvOYB1X8fUVp96','JARDIM MARIANA II','user',0,'2024-11-05 11:44:46','local'),(5,'Wallace','Silva','12988370248','wallace.silva28@fatec.sp.gov.br','$2b$12$FKLSfpPw66DBE9wfA8eIHe7pr8hHEl1kdMdSCNOdbdehsMuPc67jG','JARDIM NOVA FLORIDA','user',0,'2024-11-05 22:30:42','local'),(7,'Wallace','Silva','12988370248','silva.marinho@gmail.com','$2b$12$EkV8dX2hutRLoW.bVkoDIuybSFuWrvSSvwvS/PWUb9MY7JV7MDTKe','JARDIM NOVA DETROIT','user',0,'2024-11-05 22:34:17','local'),(9,'Wallace','Silva','12988370248','wallace.marinhosouzas@gmail.com',NULL,'JARDIM CEREJEIRAS','user',0,'2024-11-06 13:25:56','google');
+INSERT INTO `user_login` VALUES (1,'admin','system','00000000000','admin@system.com','$2b$12$0h1df7OSHkzwqKRlzFIYD.DYlc67siTOBKmpTt3x/6uxYjA.0CuGi','NENHUM','admin',1,'2024-11-25 17:39:45','local'),(10,'exemplo','1','12988370248','exemplo@email.com','$2b$12$vsdxsszrpednW43n4CQOTutMHH05U0Ox.FXcdcs6K1.h3R93FDtT2','RESIDENCIAL CAMPO BELO','user',0,'2024-11-25 18:23:49','local'),(24,'Wallace','Silva','12988370248','wallace.marinhosouzas@gmail.com','$2b$12$P5oZ8rlEkLQ8eqtsIP6zxuDTh9hYdWWPVGUNeDyu.LfjhuTLxMTuq','JARDIM ITAPUÃ','user',0,'2024-11-26 16:50:53','local'),(26,'rodrigo','goulart','12988370248','rodrigo@email.com','$2b$12$3MfwwGJyPU8aii/Kqr0gDOnWiiM3ylJkL9IymwqxeRyeBrP0uDnNS','JARDIM AMERICANO','user',0,'2024-11-26 17:28:22','local'),(27,'rafael','caje','12988370248','rafael@email.com','$2b$12$ccqURU2XPH30pMdDf0HsC.GE21v8ZwIGRikht16UJ3JubdThfF.86','RESIDENCIAL DOM BOSCO','user',0,'2024-11-26 17:29:05','local'),(28,'jean','carlos','12988370248','jean@email.com','$2b$12$xTUGoymw2F2s.o1GAzVSeu5opbeBBHuyiPeBvf12wKR2A4NafJ6pq','PARQUE NOVO HORIZONTE','user',0,'2024-11-26 17:30:03','local');
 /*!40000 ALTER TABLE `user_login` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `user_optional_terms_acceptance`
+--
+
+DROP TABLE IF EXISTS `user_optional_terms_acceptance`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `user_optional_terms_acceptance` (
+  `user_id` int(11) NOT NULL,
+  `optional_term_id` int(11) NOT NULL,
+  `accepted_at` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`user_id`,`optional_term_id`),
+  KEY `optional_term_id` (`optional_term_id`),
+  CONSTRAINT `user_optional_terms_acceptance_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user_login` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `user_optional_terms_acceptance_ibfk_2` FOREIGN KEY (`optional_term_id`) REFERENCES `optional_terms` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `user_optional_terms_acceptance`
+--
+
+LOCK TABLES `user_optional_terms_acceptance` WRITE;
+/*!40000 ALTER TABLE `user_optional_terms_acceptance` DISABLE KEYS */;
+/*!40000 ALTER TABLE `user_optional_terms_acceptance` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -136,7 +192,7 @@ CREATE TABLE `user_terms_and_privacy_acceptance` (
 
 LOCK TABLES `user_terms_and_privacy_acceptance` WRITE;
 /*!40000 ALTER TABLE `user_terms_and_privacy_acceptance` DISABLE KEYS */;
-INSERT INTO `user_terms_and_privacy_acceptance` VALUES (1,'0000','0000','0000','2024-10-29 00:04:01'),(3,'0000','0000','0000','2024-11-05 11:43:55'),(4,'0000','0000','0000','2024-11-05 11:44:46'),(5,'0000','0000','0000','2024-11-05 22:30:42'),(7,'0000','0000','0000','2024-11-05 22:34:17'),(9,'0000','0000',NULL,'2024-11-06 13:25:56');
+INSERT INTO `user_terms_and_privacy_acceptance` VALUES (1,'0000','0000','0000','2024-11-25 17:39:45'),(10,'0000','0000','0000','2024-11-25 18:23:50'),(24,'0000','0000','0000','2024-11-26 16:50:54'),(26,'0000','0000','0000','2024-11-26 17:28:23'),(27,'0000','0000','0000','2024-11-26 17:29:06'),(28,'0000','0000','0000','2024-11-26 17:30:03');
 /*!40000 ALTER TABLE `user_terms_and_privacy_acceptance` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -149,5 +205,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-11-13  9:55:20
---
+-- Dump completed on 2024-11-26 14:31:03

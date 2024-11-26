@@ -202,3 +202,4 @@
 2024-11-21 23:34:39.448186 | Evento: Conta de usuï¿½rio removida | Tabela: user_login | ID: 13
 2024-11-21 23:36:06.083674 | Evento: Remover consentimento | Tabela: user_optional_terms_acceptance | ID: 14 | Info adicional: IDs removidos: [4]
 2024-11-21 23:36:06.111933 | Evento: Resetar optional_version | Tabela: user_terms_and_privacy_acceptance | ID: 14 | Info adicional: Versï¿½o opcional resetada para NULL
+2024-11-25 23:26:50.546579 | Evento: Aceitação dos Termos - Versão 0000, Política de Privacidade - Versão 0000 | Tabela: user_terms_and_privacy_acceptance | ID: 15

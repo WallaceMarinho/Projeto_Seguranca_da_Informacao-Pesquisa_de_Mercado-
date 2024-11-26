@@ -2,6 +2,7 @@ import bcrypt
 from flask import jsonify, request
 from pymysql.cursors import DictCursor
 
+from excluded_users import add_to_excluded_users
 from so_terms_login import format_optional_code, get_terms_and_privacy, get_user_optional_version, log_event
 
 def view_user_data(user_id, mydb):
@@ -350,6 +351,7 @@ def remove_local_user_account(user_id, password, mydb):
             cursor.execute("DELETE FROM user_login WHERE id = %s", (user_id,))
             mydb.commit()
             log_event("Conta de usuário removida", "user_login", user_id)
+            add_to_excluded_users(user_id)  # Adiciona o ID à lista de excluídos
             return True
         return False
 
@@ -359,6 +361,7 @@ def remove_google_user_account(user_id, mydb):
         cursor.execute("DELETE FROM user_login WHERE id = %s", (user_id,))
         mydb.commit()
         log_event("Conta de usuário Google removida", "user_login", user_id)
+        add_to_excluded_users(user_id)  # Adiciona o ID à lista de excluídos
         return True
 
 def validate_user_password(user_id, password, mydb):

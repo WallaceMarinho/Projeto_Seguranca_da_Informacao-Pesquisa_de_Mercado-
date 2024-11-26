@@ -10,8 +10,8 @@ config = {
         'host': os.getenv('SSH_HOST'),
         'port': int(os.getenv('SSH_PORT')),
         'username': os.getenv('SSH_USERNAME'),
-        'password': os.getenv('SSH_PASSWORD'),
-        #'private_key': os.getenv('SSH_PRIVATE_KEY'),
+        #'password': os.getenv('SSH_PASSWORD'),
+        'private_key': os.getenv('SSH_PRIVATE_KEY'),
         'remote_bind_address': (os.getenv('REMOTE_DB_HOST'), int(os.getenv('REMOTE_DB_PORT')))
     },
     'mysql': {

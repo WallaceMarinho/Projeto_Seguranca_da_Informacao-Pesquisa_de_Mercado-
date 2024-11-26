@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, render_template, redirect, url_for, request, session, flash
+from restore_backup import remove_user_and_register
 from so_user import view_user_data
 from so_user_management import create_admin, fetch_current_policy_terms, fetch_current_terms, fetch_user_dashboard_data, insert_optional_term_in_db, list_users, log_adm_event, remove_optional_term, remove_user_by_id, update_optional_term_in_db, update_terms_policy, update_user, update_user_email_in_db, validate_admin_password
 from db_connection import mydb
@@ -189,7 +190,10 @@ def delete_user():
         flash("Senha incorreta. Não foi possível remover o usuário.", "error")
         return redirect(url_for('admin_routes.admin_dashboard'))
 
-    if remove_user_by_id(user_id):
+    # Utilizando a nova função para remover e registrar a exclusão
+    success = remove_user_and_register(user_id, mydb, log_exclusion=True)
+
+    if success:
         flash("Usuário removido com sucesso.", "success")
     else:
         flash("Erro ao remover o usuário.", "error")
