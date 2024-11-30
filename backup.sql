@@ -58,7 +58,7 @@ CREATE TABLE `survey_responses` (
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `survey_responses_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user_login` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=163 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=187 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -67,7 +67,7 @@ CREATE TABLE `survey_responses` (
 
 LOCK TABLES `survey_responses` WRITE;
 /*!40000 ALTER TABLE `survey_responses` DISABLE KEYS */;
-INSERT INTO `survey_responses` VALUES (49,10,'Quantos anos você tem?','22'),(50,10,'Com que frequência você faz compras em supermercados?','3'),(51,10,'Qual a distância do supermercado mais próximo?','1'),(52,10,'Quantas pessoas existem na família incluindo você?','3'),(53,10,'Quanto costuma ficar sua compra no supermercado?','2'),(54,10,'Quanto gasta por mês em mercearia, açougue e sacolão do seu bairro (fora supermercado)?','1'),(133,24,'Quantos anos você tem?','2'),(134,24,'Com que frequência você faz compras em supermercados?','1'),(135,24,'Qual a distância do supermercado mais próximo?','1'),(136,24,'Quantas pessoas existem na família incluindo você?','2'),(137,24,'Quanto costuma ficar sua compra no supermercado?','1'),(138,24,'Quanto gasta por mês em mercearia, açougue e sacolão do seu bairro (fora supermercado)?','1'),(145,26,'Quantos anos você tem?','22'),(146,26,'Com que frequência você faz compras em supermercados?','1'),(147,26,'Qual a distância do supermercado mais próximo?','2'),(148,26,'Quantas pessoas existem na família incluindo você?','22'),(149,26,'Quanto costuma ficar sua compra no supermercado?','3'),(150,26,'Quanto gasta por mês em mercearia, açougue e sacolão do seu bairro (fora supermercado)?','2'),(151,27,'Quantos anos você tem?','30'),(152,27,'Com que frequência você faz compras em supermercados?','3'),(153,27,'Qual a distância do supermercado mais próximo?','2'),(154,27,'Quantas pessoas existem na família incluindo você?','11'),(155,27,'Quanto costuma ficar sua compra no supermercado?','3'),(156,27,'Quanto gasta por mês em mercearia, açougue e sacolão do seu bairro (fora supermercado)?','3'),(157,28,'Quantos anos você tem?','45'),(158,28,'Com que frequência você faz compras em supermercados?','2'),(159,28,'Qual a distância do supermercado mais próximo?','2'),(160,28,'Quantas pessoas existem na família incluindo você?','4'),(161,28,'Quanto costuma ficar sua compra no supermercado?','3'),(162,28,'Quanto gasta por mês em mercearia, açougue e sacolão do seu bairro (fora supermercado)?','1');
+INSERT INTO `survey_responses` VALUES (145,26,'Quantos anos você tem?','22'),(146,26,'Com que frequência você faz compras em supermercados?','1'),(147,26,'Qual a distância do supermercado mais próximo?','2'),(148,26,'Quantas pessoas existem na família incluindo você?','22'),(149,26,'Quanto costuma ficar sua compra no supermercado?','3'),(150,26,'Quanto gasta por mês em mercearia, açougue e sacolão do seu bairro (fora supermercado)?','2'),(163,30,'Quantos anos você tem?','22'),(164,30,'Com que frequência você faz compras em supermercados?','2'),(165,30,'Qual a distância do supermercado mais próximo?','2'),(166,30,'Quantas pessoas existem na família incluindo você?','22'),(167,30,'Quanto costuma ficar sua compra no supermercado?','1'),(168,30,'Quanto gasta por mês em mercearia, açougue e sacolão do seu bairro (fora supermercado)?','2'),(169,31,'Quantos anos você tem?','22'),(170,31,'Com que frequência você faz compras em supermercados?','1'),(171,31,'Qual a distância do supermercado mais próximo?','2'),(172,31,'Quantas pessoas existem na família incluindo você?','22'),(173,31,'Quanto costuma ficar sua compra no supermercado?','2'),(174,31,'Quanto gasta por mês em mercearia, açougue e sacolão do seu bairro (fora supermercado)?','1'),(175,32,'Quantos anos você tem?','4'),(176,32,'Com que frequência você faz compras em supermercados?','0'),(177,32,'Qual a distância do supermercado mais próximo?','1'),(178,32,'Quantas pessoas existem na família incluindo você?','4'),(179,32,'Quanto costuma ficar sua compra no supermercado?','2'),(180,32,'Quanto gasta por mês em mercearia, açougue e sacolão do seu bairro (fora supermercado)?','1');
 /*!40000 ALTER TABLE `survey_responses` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -122,7 +122,7 @@ CREATE TABLE `user_login` (
   `provider` enum('local','google') NOT NULL DEFAULT 'local',
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=29 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -131,7 +131,7 @@ CREATE TABLE `user_login` (
 
 LOCK TABLES `user_login` WRITE;
 /*!40000 ALTER TABLE `user_login` DISABLE KEYS */;
-INSERT INTO `user_login` VALUES (1,'admin','system','00000000000','admin@system.com','$2b$12$0h1df7OSHkzwqKRlzFIYD.DYlc67siTOBKmpTt3x/6uxYjA.0CuGi','NENHUM','admin',1,'2024-11-25 17:39:45','local'),(10,'exemplo','1','12988370248','exemplo@email.com','$2b$12$vsdxsszrpednW43n4CQOTutMHH05U0Ox.FXcdcs6K1.h3R93FDtT2','RESIDENCIAL CAMPO BELO','user',0,'2024-11-25 18:23:49','local'),(24,'Wallace','Silva','12988370248','wallace.marinhosouzas@gmail.com','$2b$12$P5oZ8rlEkLQ8eqtsIP6zxuDTh9hYdWWPVGUNeDyu.LfjhuTLxMTuq','JARDIM ITAPUÃ','user',0,'2024-11-26 16:50:53','local'),(26,'rodrigo','goulart','12988370248','rodrigo@email.com','$2b$12$3MfwwGJyPU8aii/Kqr0gDOnWiiM3ylJkL9IymwqxeRyeBrP0uDnNS','JARDIM AMERICANO','user',0,'2024-11-26 17:28:22','local'),(27,'rafael','caje','12988370248','rafael@email.com','$2b$12$ccqURU2XPH30pMdDf0HsC.GE21v8ZwIGRikht16UJ3JubdThfF.86','RESIDENCIAL DOM BOSCO','user',0,'2024-11-26 17:29:05','local'),(28,'jean','carlos','12988370248','jean@email.com','$2b$12$xTUGoymw2F2s.o1GAzVSeu5opbeBBHuyiPeBvf12wKR2A4NafJ6pq','PARQUE NOVO HORIZONTE','user',0,'2024-11-26 17:30:03','local');
+INSERT INTO `user_login` VALUES (1,'admin','system','00000000000','admin@system.com','$2b$12$0h1df7OSHkzwqKRlzFIYD.DYlc67siTOBKmpTt3x/6uxYjA.0CuGi','NENHUM','admin',1,'2024-11-25 17:39:45','local'),(26,'rodrigo','goulart','12988370248','rodrigo@email.com','$2b$12$3MfwwGJyPU8aii/Kqr0gDOnWiiM3ylJkL9IymwqxeRyeBrP0uDnNS','JARDIM AMERICANO','user',0,'2024-11-26 17:28:22','local'),(29,'eliana','moreira','12988370248','eliana@gmail.com','$2b$12$TmgypPpnfpUQ66NHxAHE9.lrqZQgmgC9wYnlOuawuX55YZ6WIZ0am','JARDIM ITAPUÃ','user',0,'2024-11-26 23:08:28','local'),(30,'eliana','moreira','12988370248','exemplo@email.com','$2b$12$L9/eJwWLyP/JiX2H6tZ8IeeYgbsJHCZcjLsTl4D.DNgMtb.xsmwji','JARDIM MARIANA','user',0,'2024-11-26 23:12:21','local'),(31,'Wallace','Silva','12988370248','wallace.marinhosouzas@gmail.com','$2b$12$.cL4hfo81pCwoiOZex5vM.ySwSdCZu7aklAZ6wL6KMTcVQVgEMtl.','JARDIM MOTORAMA','user',0,'2024-11-27 01:57:41','local'),(32,'jean','carlos','12988370248','jean@email.com','$2b$12$vXM3fG.4mz3yJGsWJ39s3.WNjurXPDkQYWzSELeCrJ79QS.8aSoGS','JARDIM MARIANA II','user',0,'2024-11-27 01:58:31','local');
 /*!40000 ALTER TABLE `user_login` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -192,7 +192,7 @@ CREATE TABLE `user_terms_and_privacy_acceptance` (
 
 LOCK TABLES `user_terms_and_privacy_acceptance` WRITE;
 /*!40000 ALTER TABLE `user_terms_and_privacy_acceptance` DISABLE KEYS */;
-INSERT INTO `user_terms_and_privacy_acceptance` VALUES (1,'0000','0000','0000','2024-11-25 17:39:45'),(10,'0000','0000','0000','2024-11-25 18:23:50'),(24,'0000','0000','0000','2024-11-26 16:50:54'),(26,'0000','0000','0000','2024-11-26 17:28:23'),(27,'0000','0000','0000','2024-11-26 17:29:06'),(28,'0000','0000','0000','2024-11-26 17:30:03');
+INSERT INTO `user_terms_and_privacy_acceptance` VALUES (1,'0000','0000','0000','2024-11-25 17:39:45'),(26,'0000','0000','0000','2024-11-26 17:28:23'),(29,'0000','0000','0000','2024-11-26 23:08:29'),(30,'0000','0000','0000','2024-11-26 23:12:21'),(31,'0000','0000','0000','2024-11-27 01:57:41'),(32,'0000','0000','0000','2024-11-27 01:58:31');
 /*!40000 ALTER TABLE `user_terms_and_privacy_acceptance` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -205,4 +205,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-11-26 14:31:03
+-- Dump completed on 2024-11-27  9:56:17

@@ -570,4 +570,3 @@ def status():
     if is_maintenance_mode():
         return jsonify({"status": "maintenance"}), 503
     return jsonify({"status": "operational"}), 200
-

@@ -21,17 +21,31 @@ def restore_backup():
         print("Erro: Verifique se todas as variáveis de ambiente (DB_HOST, DB_USER, DB_PASSWORD, DB) estão definidas.")
         return
 
-    command = [
-        "C:/Program Files/MySQL/MySQL Server 8.0/bin/mysql.exe",
-        "-h", db_host,
-        "-P", "3306",
-        "-u", db_user,
-        f"-p{db_password}",
-        db_name
-    ]
-
     try:
+        # Conecta ao MySQL para verificar/criar o banco
+        connection = mysql.connector.connect(
+            host=db_host,
+            user=db_user,
+            password=db_password
+        )
+        cursor = connection.cursor()
+
+        # Cria o banco de dados se não existir
+        cursor.execute(f"CREATE DATABASE IF NOT EXISTS {db_name}")
+        connection.commit()
+        print(f"Banco de dados '{db_name}' garantido com sucesso.")
+        cursor.close()
+        connection.close()
+
         # Restaura o banco de dados a partir do backup
+        command = [
+            "C:/Program Files/MySQL/MySQL Server 8.0/bin/mysql.exe",
+            "-h", db_host,
+            "-P", "3306",
+            "-u", db_user,
+            f"-p{db_password}",
+            db_name
+        ]
         with open(backup_file, "r") as backup:
             result = subprocess.run(
                 command,
@@ -41,16 +55,20 @@ def restore_backup():
                 timeout=50  # Tempo limite de 50 segundos
             )
 
-            if result.returncode == 0:
-                print("Restauração realizada com sucesso.")
-                # Processa usuários excluídos após a restauração
-                process_excluded_users(db_host, db_user, db_password, db_name, excluded_users_file)
-            else:
-                print(f"Erro ao realizar a restauração. Código de erro: {result.returncode}")
+        if result.returncode == 0:
+            print("Restauração realizada com sucesso.")
+            # Processa usuários excluídos após a restauração
+            process_excluded_users(db_host, db_user, db_password, db_name, excluded_users_file)
+        else:
+            print(f"Erro ao realizar a restauração. Código de erro: {result.returncode}")
     except FileNotFoundError:
         print(f"Erro: Arquivo de backup '{backup_file}' não encontrado.")
     except subprocess.TimeoutExpired:
         print("Erro: O processo de restauração excedeu o tempo limite.")
+    except mysql.connector.Error as err:
+        print(f"Erro ao conectar ao MySQL: {err}")
+    except Exception as e:
+        print(f"Erro geral: {e}")
 
 
 def process_excluded_users(db_host, db_user, db_password, db_name, excluded_users_file):
@@ -89,78 +107,60 @@ def process_excluded_users(db_host, db_user, db_password, db_name, excluded_user
         print(f"Erro ao processar a lista de usuários excluídos: {e}")
 
 
+
 def remove_user_and_register(user_id, mydb, log_exclusion=True):
     try:
-        print(f"Removendo conta do usuário local com ID: {user_id}")
+        print(f"\n--- Iniciando remoção para o usuário com ID: {user_id} ---")
 
         cursor = mydb.cursor()
 
-        # Verifica se o usuário existe no banco
+        # Verifica se o ID é um dicionário
         if isinstance(user_id, dict) and 'id' in user_id:
-            user_id = user_id['id']  # Extrai o ID do dicionário
+            user_id = user_id['id']
 
-        # Realiza a consulta com o ID correto
+        # Verifica se o usuário existe no banco
         cursor.execute("SELECT id FROM user_login WHERE id = %s", (user_id,))
-        result = cursor.fetchone()  # Obtém apenas um registro ou None se não existir
+        result = cursor.fetchone()
 
         if not result:
             print(f"Usuário com ID {user_id} não encontrado no banco.")
             cursor.close()
             return False
 
-        # Verifica se o resultado é um dicionário com a chave 'id'
-        if isinstance(result, dict) and 'id' in result:
-            user_id_found = result['id']  # Extrai o ID do dicionário
-        elif isinstance(result, tuple):
-            user_id_found = result[0]  # Extrai o ID de uma tupla
-        else:
-            print(f"Resultado inesperado: {result}")
-            cursor.close()
-            return False
+        user_id_found = result[0] if isinstance(result, tuple) else result['id']
+        print(f"Usuário encontrado no banco com ID: {user_id_found}")
 
-        print(f"Usuário encontrado com ID: {user_id_found}")
-
-        # Remove o usuário do banco
+        # Remove o usuário
         cursor.execute("DELETE FROM user_login WHERE id = %s", (user_id_found,))
         mydb.commit()
-        print(f"Usuário com ID {user_id_found} removido com sucesso.")
+        print(f"Usuário com ID {user_id_found} removido com sucesso do banco.")
 
-        # Registra a exclusão, se necessário
+        # Registro no JSON
         if log_exclusion:
             excluded_users_file = "excluded_users.json"
-
-            # Carrega ou inicializa o arquivo JSON
             if os.path.exists(excluded_users_file):
                 with open(excluded_users_file, "r") as file:
                     excluded_users = json.load(file)
             else:
                 excluded_users = []
 
-            # Adiciona apenas o ID ao JSON
-            excluded_users.append({"id": str(user_id_found)})
+            # Verifica duplicação no JSON
+            if not any(user["id"] == str(user_id_found) for user in excluded_users):
+                excluded_users.append({"id": str(user_id_found)})
+                with open(excluded_users_file, "w") as file:
+                    json.dump(excluded_users, file, indent=4)
+                print(f"Usuário com ID {user_id_found} registrado na lista de excluídos.")
+            else:
+                print(f"Usuário com ID {user_id_found} já está na lista de excluídos.")
 
-            # Salva no arquivo JSON
-            with open(excluded_users_file, "w") as file:
-                json.dump(excluded_users, file, indent=4)
-
-            print(f"Usuário com ID {user_id_found} registrado na lista de excluídos.")
-        else:
-            print(f"Usuário com ID {user_id_found} removido sem registro.")
-
+        print(f"Operação concluída para o usuário com ID: {user_id_found}\n")
         cursor.close()
         return True
 
-    except mysql.connector.Error as err:
-        print(f"Erro no banco de dados: {err}, Código do erro: {err.errno}, SQL: {err.sqlstate}")
-        import traceback
-        traceback.print_exc()
+    except Exception as e:
+        print(f"Erro: {str(e)}")
         return False
 
-    except Exception as e:
-        print(f"Erro geral: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return False
 
 
 if __name__ == "__main__":

@@ -29,9 +29,13 @@ def add_to_excluded_users(user_data):
 
     # Verifica se o usuário já existe na lista
     if any(user["id"] == user_data["id"] for user in excluded_users):
-        print(f"Usuário com ID {user_data['id']} já está na lista de excluídos.")
-    else:
-        excluded_users.append(user_data)
-        with open(EXCLUDED_USERS_FILE, "w") as file:
-            json.dump(excluded_users, file, indent=4)
-        print(f"Usuário com ID {user_data['id']} adicionado à lista de excluídos.")
+        print(f"Usuário com ID {user_data['id']} já está na lista de excluídos. Nenhuma ação realizada.")
+        return  # Não adiciona o ID duplicado
+
+    # Adiciona o usuário à lista
+    excluded_users.append(user_data)
+
+    # Atualiza o arquivo JSON
+    with open(EXCLUDED_USERS_FILE, "w") as file:
+        json.dump(excluded_users, file, indent=4)
+    print(f"Usuário com ID {user_data['id']} adicionado à lista de excluídos.")

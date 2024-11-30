@@ -13,7 +13,7 @@ def create_default_admin(mydb):
                 """, (os.getenv("ADMIN_EMAIL"),))
                 existing_admin = cursor.fetchone()
 
-                reset_admin = os.getenv("RESET_ADM", "FALSE").upper() == "TRUE"
+                reset_admin = os.getenv("RESET_ADM", "TRUE").upper() == "TRUE"
 
                 if existing_admin and reset_admin:
                     hashed_password = bcrypt.hashpw(os.getenv("ADMIN_PASSWORD").encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
